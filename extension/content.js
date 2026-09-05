@@ -315,6 +315,11 @@
       const data = await res.json();
       updateStatus(true, data.projectName);
 
+      // If server doesn't have the latest response cached yet, force re-sync
+      if (!data.hasResponse) {
+        lastSyncedText = '';
+      }
+
       // Process any queued commands from AI Hub
       if (Array.isArray(data.commands) && data.commands.length > 0) {
         for (const cmd of data.commands) {

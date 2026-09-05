@@ -327,12 +327,31 @@ app.post('/api/bridge/ping', (req, res) => {
   res.json({
     success: true,
     projectName: path.basename(PROJECT_ROOT),
-    commands
+    commands,
+    hasResponse: !!bridgeState.latestAiResponse
   });
 });
 
 app.get('/api/bridge/status', (req, res) => {
   const isConnected = (Date.now() - bridgeState.lastSeen) < 15000;
+
+  // Restore latest response from disk if server was restarted
+  if (!bridgeState.latestAiResponse) {
+    try {
+      const latestFile = path.join(PROJECT_ROOT, '.ai-hub/history/latest_response.md');
+      if (fs.existsSync(latestFile)) {
+        const text = fs.readFileSync(latestFile, 'utf8');
+        const stat = fs.statSync(latestFile);
+        if (text && text.trim()) {
+          bridgeState.latestAiResponse = {
+            text,
+            time: stat.mtimeMs
+          };
+        }
+      }
+    } catch (e) {}
+  }
+
   res.json({
     connected: isConnected,
     tabUrl: isConnected ? bridgeState.tabUrl : '',
@@ -346,10 +365,26 @@ app.get('/api/bridge/status', (req, res) => {
 app.post('/api/bridge/ai-response', (req, res) => {
   const { text, time } = req.body;
   if (text) {
+    const timestamp = time || Date.now();
     bridgeState.latestAiResponse = {
       text,
-      time: time || Date.now()
+      time: timestamp
     };
+
+    // Save to disk in .ai-hub/history
+    try {
+      const historyDir = path.join(PROJECT_ROOT, '.ai-hub/history');
+      if (!fs.existsSync(historyDir)) fs.mkdirSync(historyDir, { recursive: true });
+      
+      // 1. Save latest_response.md
+      fs.writeFileSync(path.join(historyDir, 'latest_response.md'), text, 'utf8');
+
+      // 2. Append to chat_history.md
+      const logEntry = `\n\n---\n### 🕒 คำตอบบันทึกเมื่อ ${new Date(timestamp).toLocaleString('th-TH')}\n\n${text}\n`;
+      fs.appendFileSync(path.join(historyDir, 'chat_history.md'), logEntry, 'utf8');
+    } catch (e) {
+      console.error('Error saving AI response to history:', e.message);
+    }
   }
   res.json({ success: true });
 });

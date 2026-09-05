@@ -219,6 +219,9 @@
                 <button onclick="copyAiResponse()" class="px-2 py-0.5 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700 rounded text-xs transition cursor-pointer">
                   📋 คัดลอก
                 </button>
+                <button onclick="downloadResponseAsMd()" class="px-2 py-0.5 bg-stone-900 hover:bg-stone-800 text-amber-300 border border-amber-800/60 rounded text-xs transition cursor-pointer" title="ดาวน์โหลดคำตอบนี้เป็นไฟล์ .md">
+                  💾 เซฟเป็น .md
+                </button>
               </div>
             </div>
 
@@ -1210,6 +1213,46 @@
       alert('คัดลอกคำตอบของ AI เรียบร้อยแล้ว!');
     }
 
+    function downloadResponseAsMd() {
+      if (!currentAiResponseText) {
+        alert('ยังไม่มีข้อความคำตอบจาก AI');
+        return;
+      }
+      const blob = new Blob([currentAiResponseText], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ai_response_${Date.now()}.md`;
+      a.click();
+    }
+
+    function restoreCachedResponse() {
+      try {
+        const cached = JSON.parse(localStorage.getItem('ai_hub_latest_response') || 'null');
+        if (cached && cached.text) {
+          currentAiResponseText = cached.text;
+          const fullContent = document.getElementById('aiResponseFullContent');
+          const fullTime = document.getElementById('aiResponseFullTime');
+          const quickBar = document.getElementById('aiResponseQuickBar');
+          const quickSnippet = document.getElementById('quickBarSnippet');
+
+          if (fullContent) fullContent.innerText = cached.text;
+          if (fullTime && cached.time) {
+            const d = new Date(cached.time);
+            fullTime.innerText = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          }
+          if (quickBar) quickBar.classList.remove('hidden');
+          if (quickSnippet) quickSnippet.innerText = cached.text.slice(0, 45) + (cached.text.length > 45 ? '...' : '');
+
+          const files = parseFilesFromAiText(cached.text);
+          renderDetectedFilesList(files);
+
+          const commands = parseCommandsFromAiText(cached.text);
+          renderDetectedCommandsList(commands);
+        }
+      } catch (e) {}
+    }
+
     async function checkBridgeStatus() {
       try {
         const res = await fetch('/api/bridge/status');
@@ -1251,6 +1294,10 @@
 
           if (newText !== currentAiResponseText) {
             currentAiResponseText = newText;
+            try {
+              localStorage.setItem('ai_hub_latest_response', JSON.stringify({ text: newText, time: newTime }));
+            } catch (e) {}
+
             const fullContent = document.getElementById('aiResponseFullContent');
             const fullTime = document.getElementById('aiResponseFullTime');
             const quickBar = document.getElementById('aiResponseQuickBar');
@@ -1332,6 +1379,7 @@
     }
 
     loadTree();
+    restoreCachedResponse();
   </script>
 </body>
 </html>
