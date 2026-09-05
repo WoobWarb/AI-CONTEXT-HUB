@@ -575,11 +575,11 @@
           if (isRunnableScript) {
             runBtnHtml = `
               <div class="flex items-center gap-1 ml-auto shrink-0" onclick="event.stopPropagation()">
-                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', false)" class="px-2 py-0.5 bg-sky-600 hover:bg-sky-500 text-stone-950 font-bold rounded text-[11px] transition shadow cursor-pointer flex items-center gap-1" title="สั่งรันไฟล์นี้ใน Terminal">
+                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', true)" class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold rounded text-[11px] transition shadow cursor-pointer flex items-center gap-1" title="เปิดหน้าต่าง Command Prompt รันไฟล์นี้ทันที">
                   <span>▶️ รัน</span>
                 </button>
-                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', true)" class="px-1.5 py-0.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[11px] transition cursor-pointer" title="เปิดรันในหน้าต่าง Command Prompt แยกของ Windows">
-                  🪟
+                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', false)" class="px-1.5 py-0.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[11px] transition cursor-pointer" title="รันในเว็บ Terminal">
+                  💻
                 </button>
               </div>
             `;
