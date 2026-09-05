@@ -13,7 +13,7 @@
   let autoAgentEnabled = true;
   let processedSignatures = new Set();
 
-  console.log('🤖 [AI Context Hub Extension] Loaded on:', window.location.hostname);
+  console.log('🤖 [AI Context Hub Extension v1.0.5] Loaded on:', window.location.hostname);
 
   // 1. Create floating overlay widget on the web chat page
   const widget = document.createElement('div');
@@ -40,6 +40,7 @@
         <div style="display: flex; align-items: center; gap: 8px; font-weight: bold; color: #f59e0b; font-size: 15px;">
           <span id="ai-hub-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
           <span>AI Context Hub</span>
+          <span style="font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 1px 5px; border-radius: 4px;">v1.0.5</span>
         </div>
         <span id="ai-hub-status-text" style="font-size: 12px; color: #a8a29e;">กำลังเชื่อมต่อ...</span>
       </div>

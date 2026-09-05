@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Context Hub Bridge",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "เชื่อมต่อ ChatGPT, Claude, Gemini, DeepSeek เข้ากับไฟล์ในเครื่องผ่าน AI Context Hub",
   "content_scripts": [
     {
