@@ -562,10 +562,13 @@ app.post('/api/run-command', (req, res) => {
     execCmd = `${execCmd} < nul`;
   }
 
+  const isHeavyCmd = /npm\s+(i|install)|pip\s+install|git\s+clone|docker\s+(build|pull)|winget/i.test(rawCmd);
+  const timeoutMs = isHeavyCmd ? 600000 : 120000;
+
   exec(execCmd, {
     cwd: workDir,
     shell: shellCmd,
-    timeout: 30000,
+    timeout: timeoutMs,
     maxBuffer: 10 * 1024 * 1024
   }, (error, stdout, stderr) => {
     if (error && (error.killed || error.signal === 'SIGTERM')) {
@@ -573,7 +576,9 @@ app.post('/api/run-command', (req, res) => {
         success: false,
         command: rawCmd,
         workDir: path.basename(workDir),
-        output: `⚠️ คำสั่งใช้เวลานานเกิน 30 วินาที (มักเกิดกับคำสั่งที่รันเป็น Server หรือดาวน์โหลดไฟล์ใหญ่)\n\n💡 แนะนำ: กดปุ่ม "🪟 เปิดใน CMD แยก" ด้านล่าง เพื่อให้เปิดหน้าต่าง Command Prompt ของ Windows รันโปรเจกต์ได้อย่างต่อเนื่องครับ`
+        output: isHeavyCmd 
+          ? `⚠️ การดาวน์โหลดหรือติดตั้งแพ็กเกจ (${rawCmd}) ใช้เวลานานเกิน 10 นาที หรืออินเทอร์เน็ตมีปัญหา` 
+          : `⚠️ คำสั่งใช้เวลานานเกิน 2 นาที (มักเกิดกับคำสั่งที่รันเป็น Server ต่อเนื่อง)\n\n💡 แนะนำ: กดปุ่ม "🪟 เปิดใน CMD แยก" ด้านล่าง เพื่อให้เปิดหน้าต่าง Command Prompt ของ Windows รันโปรเจกต์ได้อย่างต่อเนื่องครับ`
       });
     }
 
