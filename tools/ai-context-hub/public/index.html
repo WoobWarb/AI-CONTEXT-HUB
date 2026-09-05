@@ -291,8 +291,20 @@
         <span class="text-amber-400 text-[11px]" id="terminalWorkDirDisplay"></span>
       </div>
       <pre id="terminalOutput" class="bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-emerald-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-stone-800">กำลังรันคำสั่ง...</pre>
+
+      <!-- Auto-Fix with AI Banner -->
+      <div id="terminalAutoFixBar" class="hidden mt-2 p-3 rounded-xl bg-gradient-to-r from-amber-950/70 to-stone-900 border border-amber-500/50 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-lg animate-pulse-subtle">
+        <div class="flex items-center gap-2 text-xs text-amber-200">
+          <span class="text-base">🪄</span>
+          <span id="terminalAutoFixText">พบข้อผิดพลาด ให้ AI ช่วยวิเคราะห์และแก้ไขไฟล์ให้อัตโนมัติทันที</span>
+        </div>
+        <button id="btnTerminalAutoFix" onclick="triggerAutoFixFromTerminal()" class="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold rounded-lg text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+          <span>🪄 ให้ AI ช่วยแก้ให้อัตโนมัติ</span>
+        </button>
+      </div>
+
       <div class="mt-3 flex items-center justify-between gap-2">
-        <button id="terminalOpenExternalBtn" onclick="runCurrentCommandExternal()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-stone-950 text-xs font-bold rounded-lg transition shadow flex items-center gap-1.5 cursor-pointer" title="เปิดหน้าต่าง Command Prompt แยกของ Windows">
+        <button id="terminalOpenExternalBtn" onclick="runCurrentCommandExternal()" class="px-3.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold rounded-lg transition shadow flex items-center gap-1.5 cursor-pointer" title="เปิดหน้าต่าง Command Prompt แยกของ Windows">
           <span>🪟 เปิดใน Command Prompt แยก</span>
         </button>
         <button onclick="closeModal('terminalModal')" class="px-4 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold rounded-lg transition cursor-pointer">
@@ -1156,6 +1168,9 @@
     }
 
     let lastRanCommand = '';
+    let lastErrorCommand = '';
+    let lastErrorOutput = '';
+
     function runCurrentCommandExternal() {
       if (lastRanCommand) {
         runTerminalCommand(encodeURIComponent(lastRanCommand), true);
@@ -1171,6 +1186,16 @@
       const cmdDisplay = document.getElementById('terminalCmdDisplay');
       const workDirDisplay = document.getElementById('terminalWorkDirDisplay');
       const outputEl = document.getElementById('terminalOutput');
+      const fixBar = document.getElementById('terminalAutoFixBar');
+      const fixText = document.getElementById('terminalAutoFixText');
+      const fixBtn = document.getElementById('btnTerminalAutoFix');
+
+      if (fixBar) fixBar.classList.add('hidden');
+      if (fixText) fixText.innerText = 'พบข้อผิดพลาด ให้ AI ช่วยวิเคราะห์และแก้ไขไฟล์ให้อัตโนมัติทันที';
+      if (fixBtn) {
+        fixBtn.innerHTML = '<span>🪄 ให้ AI ช่วยแก้ให้อัตโนมัติ</span>';
+        fixBtn.disabled = false;
+      }
 
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -1191,17 +1216,150 @@
 
         workDirDisplay.innerText = `📁 โฟลเดอร์: ${data.workDir || 'โปรเจกต์'}`;
         if (data.success) {
+          if (fixBar) fixBar.classList.add('hidden');
           outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-emerald-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-emerald-900/50';
           outputEl.innerText = `> ${command}\n\n${data.output || '✅ คำสั่งเสร็จสมบูรณ์เรียบร้อย'}`;
           loadTree();
         } else {
+          lastErrorCommand = command;
+          lastErrorOutput = data.output || data.error || '';
+
+          if (fixBar) fixBar.classList.remove('hidden');
           outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-rose-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-rose-900/50';
           outputEl.innerText = `> ${command}\n\n❌ ผลลัพธ์:\n${data.output || data.error}`;
+
+          // Auto-Pilot Auto-Fix Trigger
+          const autoPilotOn = document.getElementById('autoPilotCheckbox')?.checked;
+          if (autoPilotOn) {
+            let countdown = 2;
+            if (fixText) fixText.innerText = `🤖 Auto-Pilot: กำลังส่ง Error ให้ AI ช่วยแก้ให้อัตโนมัติใน ${countdown} วิ...`;
+            const timer = setInterval(() => {
+              countdown--;
+              if (countdown > 0) {
+                if (fixText) fixText.innerText = `🤖 Auto-Pilot: กำลังส่ง Error ให้ AI ช่วยแก้ให้อัตโนมัติใน ${countdown} วิ...`;
+              } else {
+                clearInterval(timer);
+                triggerAutoFixFromTerminal();
+              }
+            }, 1000);
+          }
         }
       } catch (e) {
+        lastErrorCommand = command;
+        lastErrorOutput = e.message;
+        if (fixBar) fixBar.classList.remove('hidden');
         outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-rose-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-rose-900/50';
         outputEl.innerText = `> ${command}\n\n❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์: ${e.message}`;
       }
+    }
+
+    async function triggerAutoFixFromTerminal() {
+      if (!lastErrorOutput && !lastErrorCommand) return;
+
+      const btn = document.getElementById('btnTerminalAutoFix');
+      if (btn) {
+        btn.innerHTML = '<span>⏳ กำลังส่ง Error ให้ AI...</span>';
+        btn.disabled = true;
+      }
+
+      // 1. Detect target file related to the error
+      let relevantFile = null;
+      let relevantContent = '';
+
+      for (const [filePath] of allFilesMap) {
+        const basename = filePath.split('/').pop().toLowerCase();
+        if (lastErrorCommand.toLowerCase().includes(basename)) {
+          relevantFile = filePath;
+          break;
+        }
+      }
+
+      if (!relevantFile) {
+        for (const [filePath] of allFilesMap) {
+          const basename = filePath.split('/').pop().toLowerCase();
+          if (lastErrorOutput.toLowerCase().includes(basename)) {
+            relevantFile = filePath;
+            break;
+          }
+        }
+      }
+
+      // Fetch file content if detected
+      if (relevantFile) {
+        try {
+          const fRes = await fetch(`/api/file?path=${encodeURIComponent(relevantFile)}`);
+          const fData = await fRes.json();
+          if (fData.content) relevantContent = fData.content;
+        } catch (e) {}
+      }
+
+      const projectName = document.getElementById('projectNameDisplay')?.innerText.replace(/^📁\s*/, '') || 'โปรเจกต์';
+
+      let autoFixPrompt = `[โฟลเดอร์โปรเจกต์ปัจจุบัน: ${projectName}]
+คำสั่งที่สั่งรัน: \`${lastErrorCommand}\`
+❌ ผลการรันเกิดข้อผิดพลาด (Error):
+\`\`\`
+${lastErrorOutput.slice(0, 2000)}
+\`\`\`
+`;
+
+      if (relevantFile && relevantContent) {
+        autoFixPrompt += `\nนี่คือเนื้อหาไฟล์เดิมที่เกี่ยวข้อง (\`${relevantFile}\`):\n\`\`\`\n${relevantContent}\n\`\`\`\n`;
+      }
+
+      autoFixPrompt += `
+⚠️ คำแนะนำสำคัญสำหรับผู้ช่วย AI (Auto-Fix Agent Mode):
+1. กรุณาวิเคราะห์หาสาเหตุที่ทำให้คำสั่งข้างต้นรันไม่ผ่านโดยละเอียด
+2. หากต้องสร้างหรือแก้ไขไฟล์ ให้เขียนโค้ดที่ถูกต้องสมบูรณ์ทั้งไฟล์ โดยครอบด้วยแท็ก:
+[WRITE_FILE: ${relevantFile || 'path/to/file'}]
+\`\`\`ภาษา
+เนื้อหาโค้ดที่แก้ไขแล้วทั้งหมด
+\`\`\`
+3. เมื่อแก้ไขเสร็จแล้ว หากต้องสั่งรันคำสั่งเพื่อทดสอบ ให้ใส่แท็กคำสั่ง:
+[RUN_COMMAND: คำสั่งรัน]
+(ระบบ AI Context Hub และ Chrome Extension จะบันทึกไฟล์ลงเครื่องและสั่งรันให้เองทันที)`;
+
+      // If Web Chat Bridge is active, send seamlessly!
+      if (bridgeConnected) {
+        try {
+          const res = await fetch('/api/bridge/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: autoFixPrompt,
+              autoSubmit: true
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeModal('terminalModal');
+            switchRightTab('response');
+
+            const fullContent = document.getElementById('aiResponseFullContent');
+            if (fullContent) {
+              fullContent.innerHTML = `
+                <div class="p-4 bg-stone-900 rounded-xl border border-amber-500/50 text-stone-200 text-xs sm:text-sm space-y-3 shadow-xl">
+                  <div class="font-bold text-amber-400 flex items-center gap-2 text-sm">
+                    <span class="animate-spin">⚙️</span> กำลังรอการแก้ไขจาก AI บนหน้าเว็บ...
+                  </div>
+                  <p>AI Context Hub ได้ส่ง Error ของคำสั่ง <code class="bg-black/60 px-1.5 py-0.5 rounded text-rose-300 font-mono">${lastErrorCommand}</code> พร้อมเนื้อหาไฟล์ไปให้ AI วิเคราะห์แล้ว</p>
+                  <div class="bg-black/50 p-2.5 rounded-lg text-xs font-mono text-stone-400 border border-stone-800 whitespace-pre-wrap truncate max-h-24">
+${lastErrorOutput.slice(0, 150)}...
+                  </div>
+                  <p class="text-stone-400 text-xs">✨ ทันทีที่ AI ตอบกลับพร้อมโค้ดที่แก้แล้ว ระบบจะ <b>บันทึกไฟล์ลงเครื่องให้อัตโนมัติ</b> ทันทีครับ</p>
+                </div>
+              `;
+            }
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // Fallback: put in prompt textarea and notify user to connect or submit
+      closeModal('terminalModal');
+      document.getElementById('customInstructions').value = autoFixPrompt;
+      switchRightTab('prompt');
+      openBridgeModal();
     }
 
     async function saveSpecificFile(index) {
