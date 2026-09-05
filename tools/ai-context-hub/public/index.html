@@ -291,8 +291,11 @@
         <span class="text-amber-400 text-[11px]" id="terminalWorkDirDisplay"></span>
       </div>
       <pre id="terminalOutput" class="bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-emerald-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-stone-800">กำลังรันคำสั่ง...</pre>
-      <div class="mt-3 flex justify-end gap-2">
-        <button onclick="closeModal('terminalModal')" class="px-4 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold rounded-lg transition">
+      <div class="mt-3 flex items-center justify-between gap-2">
+        <button id="terminalOpenExternalBtn" onclick="runCurrentCommandExternal()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-stone-950 text-xs font-bold rounded-lg transition shadow flex items-center gap-1.5 cursor-pointer" title="เปิดหน้าต่าง Command Prompt แยกของ Windows">
+          <span>🪟 เปิดใน Command Prompt แยก</span>
+        </button>
+        <button onclick="closeModal('terminalModal')" class="px-4 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold rounded-lg transition cursor-pointer">
           ปิดหน้าต่าง
         </button>
       </div>
@@ -712,9 +715,12 @@
       }
     }
 
-    function runScriptFile(encodedPath, openExternal = false) {
+    function runScriptFile(encodedPath, forceExternal = null) {
       const filePath = decodeURIComponent(encodedPath);
-      runTerminalCommand(filePath, openExternal);
+      // For batch scripts and shell scripts, default to openExternal=true so Windows CMD pops up and long-running servers don't hang
+      const isScript = /\.(bat|cmd|sh|ps1)$/i.test(filePath);
+      const openExternal = forceExternal !== null ? forceExternal : isScript;
+      runTerminalCommand(encodeURIComponent(filePath), openExternal);
     }
 
     async function getFormattedContext() {
@@ -1149,9 +1155,17 @@
       });
     }
 
+    let lastRanCommand = '';
+    function runCurrentCommandExternal() {
+      if (lastRanCommand) {
+        runTerminalCommand(encodeURIComponent(lastRanCommand), true);
+      }
+    }
+
     async function runTerminalCommand(encodedCmd, openExternal = false) {
       const command = decodeURIComponent(encodedCmd);
       if (!command) return;
+      lastRanCommand = command;
 
       const modal = document.getElementById('terminalModal');
       const cmdDisplay = document.getElementById('terminalCmdDisplay');
@@ -1161,9 +1175,11 @@
       modal.classList.remove('hidden');
       modal.classList.add('flex');
       cmdDisplay.innerText = `คำสั่ง: ${command}`;
-      workDirDisplay.innerText = '⏳ กำลังรัน...';
+      workDirDisplay.innerText = openExternal ? '🚀 เปิดหน้าต่าง CMD...' : '⏳ กำลังรัน...';
       outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-amber-300 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-stone-800';
-      outputEl.innerText = `> ${command}\n\n⏳ กำลังรันคำสั่งในเครื่อง... กรุณารอสักครู่`;
+      outputEl.innerText = openExternal 
+        ? `> ${command}\n\n🚀 กำลังเปิดหน้าต่าง Command Prompt ของ Windows ให้ทำงาน...`
+        : `> ${command}\n\n⏳ กำลังรันคำสั่งในเครื่อง... กรุณารอสักครู่ (หากเป็นโปรแกรม Server สามารถกดปุ่ม "🪟 เปิดใน CMD แยก" ด้านล่างได้ตลอดเวลา)`;
 
       try {
         const res = await fetch('/api/run-command', {
@@ -1180,7 +1196,7 @@
           loadTree();
         } else {
           outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-rose-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-rose-900/50';
-          outputEl.innerText = `> ${command}\n\n❌ เกิดข้อผิดพลาด:\n${data.output || data.error}`;
+          outputEl.innerText = `> ${command}\n\n❌ ผลลัพธ์:\n${data.output || data.error}`;
         }
       } catch (e) {
         outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-rose-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-rose-900/50';

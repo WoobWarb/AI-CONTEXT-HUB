@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { exec, execSync } from 'child_process';
+import { exec, execSync, spawn } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -537,26 +537,46 @@ app.post('/api/run-command', (req, res) => {
   // Option to launch in separate Windows Command Prompt window
   if (req.body.openExternal && process.platform === 'win32') {
     const title = path.basename(rawCmd);
-    const extCmd = `start "${title}" cmd.exe /k "cd /d \"${workDir}\" && ${rawCmd}"`;
-    exec(extCmd, { cwd: workDir, shell: 'cmd.exe' }, (err) => {
-      res.json({
-        success: !err,
+    try {
+      const p = spawn('cmd.exe', ['/c', 'start', `"${title}"`, 'cmd.exe', '/k', `cd /d "${workDir}" && ${rawCmd}`], {
+        cwd: workDir,
+        detached: true,
+        stdio: 'ignore',
+        shell: true
+      });
+      p.unref();
+      return res.json({
+        success: true,
         command: rawCmd,
         workDir: path.basename(workDir),
-        output: `🚀 เปิดหน้าต่าง Command Prompt ภายนอกเพื่อรัน: ${rawCmd} เรียบร้อยแล้ว`
+        output: `🚀 เปิดหน้าต่าง Command Prompt ของ Windows ขึ้นมาเพื่อรัน: ${rawCmd} เรียบร้อยแล้ว!\n(คุณสามารถดู log การทำงาน หรือกด Ctrl+C เพื่อหยุดโปรแกรมได้ที่หน้าต่าง Command Prompt นั้นครับ)`
       });
-    });
-    return;
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
   }
 
   const shellCmd = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
+  let execCmd = rawCmd;
+  if (process.platform === 'win32' && !execCmd.includes('<') && !execCmd.includes('|')) {
+    execCmd = `${execCmd} < nul`;
+  }
 
-  exec(rawCmd, {
+  exec(execCmd, {
     cwd: workDir,
     shell: shellCmd,
-    timeout: 90000,
+    timeout: 30000,
     maxBuffer: 10 * 1024 * 1024
   }, (error, stdout, stderr) => {
+    if (error && (error.killed || error.signal === 'SIGTERM')) {
+      return res.json({
+        success: false,
+        command: rawCmd,
+        workDir: path.basename(workDir),
+        output: `⚠️ คำสั่งใช้เวลานานเกิน 30 วินาที (มักเกิดกับคำสั่งที่รันเป็น Server หรือดาวน์โหลดไฟล์ใหญ่)\n\n💡 แนะนำ: กดปุ่ม "🪟 เปิดใน CMD แยก" ด้านล่าง เพื่อให้เปิดหน้าต่าง Command Prompt ของ Windows รันโปรเจกต์ได้อย่างต่อเนื่องครับ`
+      });
+    }
+
     const out = (stdout || '').trim();
     const errOut = (stderr || '').trim();
     const combined = [out, errOut].filter(Boolean).join('\n') || (error ? error.message : 'คำสั่งเสร็จสิ้นเรียบร้อย');
