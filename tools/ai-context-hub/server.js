@@ -255,19 +255,43 @@ app.post('/api/export-context', (req, res) => {
 คำสั่งจากผู้ใช้:
 ${customInstructions || promptTemplate || 'ช่วยตรวจสอบหรือจัดการไฟล์ในโปรเจกต์นี้'}
 
-⚠️ คำแนะนำสำหรับผู้ช่วย AI (Auto File Agent):
-หากคุณต้องการสร้างไฟล์ใหม่ หรือแก้ไขไฟล์ในโปรเจกต์นี้ (เช่น docker-compose.yml, script, โค้ดโปรแกรม)
-กรุณาใส่แท็กระบุชื่อไฟล์ให้ชัดเจนในคำตอบ:
-[WRITE_FILE: ชื่อไฟล์.ext]
+⚠️ คำแนะนำสำคัญสำหรับผู้ช่วย AI (Auto Agent):
+1. หากต้องการสร้างหรือแก้ไขไฟล์ในโปรเจกต์นี้ ให้ใส่แท็ก:
+[WRITE_FILE: path/to/filename.ext]
 \`\`\`ภาษา
 เนื้อหาไฟล์ทั้งหมด
 \`\`\`
-(ระบบ Chrome Extension จะตรวจจับและบันทึกไฟล์ลงเครื่องของผู้ใช้ในโฟลเดอร์นี้ให้ทันทีโดยอัตโนมัติ)`;
+2. หากผู้ใช้สั่งให้ "รันโปรเจกต์" หรือมีคำสั่งที่ต้องสั่งรันใน Terminal:
+ให้ตรวจสอบโครงสร้างไฟล์ที่มีอยู่ (เช่น docker-compose.yml, package.json, สคริปต์ .bat) แล้วออกคำสั่งด้วยแท็ก:
+[RUN_COMMAND: คำสั่งรัน] (เช่น [RUN_COMMAND: docker compose up -d] หรือ [RUN_COMMAND: start-n8n.bat])
+(ระบบจะนำคำสั่งไปรันในเครื่องของผู้ใช้ในโฟลเดอร์นี้โดยตรงทันที)`;
 
   formatted += `${instructionHeader}\n\n`;
 
+  // Always list all files in this project so the AI knows the directory structure
+  const allTree = getProjectTree();
+  const manifest = [];
+  function gatherPaths(nodes) {
+    for (const n of nodes) {
+      if (n.isDir && n.children) gatherPaths(n.children);
+      else manifest.push(n.path);
+    }
+  }
+  gatherPaths(allTree);
+
+  if (manifest.length > 0) {
+    formatted += `📁 โครงสร้างไฟล์ที่มีอยู่ในโฟลเดอร์นี้ (${manifest.length} ไฟล์):\n`;
+    for (const p of manifest.slice(0, 40)) {
+      formatted += `- \`${p}\`\n`;
+    }
+    if (manifest.length > 40) {
+      formatted += `... และอีก ${manifest.length - 40} ไฟล์\n`;
+    }
+    formatted += `\n---\n\n`;
+  }
+
   if (fileList.length > 0) {
-    formatted += `📂 ไฟล์ที่แนบส่ง (${fileList.length} ไฟล์):\n`;
+    formatted += `📂 เนื้อหาไฟล์ที่แนบส่ง (${fileList.length} ไฟล์):\n`;
     for (const f of fileList) {
       formatted += `- \`${f}\`\n`;
     }
@@ -293,7 +317,7 @@ ${customInstructions || promptTemplate || 'ช่วยตรวจสอบห�
   formatted += `### 🤖 Direct Workspace Interaction:
 คุณสามารถสั่งอ่านไฟล์ด้วย: \`[READ_FILE: path/to/file.ext]\`
 สั่งสร้าง/บันทึกไฟล์ด้วย: \`[WRITE_FILE: path/to/file.ext]\` ตามด้วยบล็อกโค้ด
-และแนะนำคำสั่ง Terminal ที่ต้องรันด้วย: \`[RUN_COMMAND: คำสั่ง]\` เช่น \`[RUN_COMMAND: docker compose up -d]\`
+และสั่งรันคำสั่งด้วย: \`[RUN_COMMAND: คำสั่ง]\` เช่น \`[RUN_COMMAND: docker compose up -d]\`
 `;
 
   const estimatedTokens = Math.round((totalChars + formatted.length) / 3.8);
@@ -508,6 +532,21 @@ app.post('/api/run-command', (req, res) => {
   }
 
   console.log(`💻 Executing terminal command in [${workDir}]: ${rawCmd}`);
+
+  // Option to launch in separate Windows Command Prompt window
+  if (req.body.openExternal && process.platform === 'win32') {
+    const title = path.basename(rawCmd);
+    const extCmd = `start "${title}" cmd.exe /k "cd /d \"${workDir}\" && ${rawCmd}"`;
+    exec(extCmd, { cwd: workDir, shell: 'cmd.exe' }, (err) => {
+      res.json({
+        success: !err,
+        command: rawCmd,
+        workDir: path.basename(workDir),
+        output: `🚀 เปิดหน้าต่าง Command Prompt ภายนอกเพื่อรัน: ${rawCmd} เรียบร้อยแล้ว`
+      });
+    });
+    return;
+  }
 
   const shellCmd = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
 

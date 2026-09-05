@@ -128,8 +128,13 @@
           </div>
 
           <div id="templateSelectWrapper" class="flex items-center gap-2">
-            <select id="promptTemplateSelect" onchange="onTemplateChange()" class="bg-stone-950 border border-stone-700 rounded-lg px-2.5 py-1 text-xs text-stone-200 focus:border-amber-500 focus:outline-none max-w-[220px] truncate">
+            <label class="flex items-center gap-1.5 text-xs text-amber-400 font-semibold cursor-pointer select-none bg-stone-900/90 px-2.5 py-1 rounded-lg border border-amber-600/40 hover:bg-stone-800 transition" title="เมื่อ AI ตอบคำสั่ง Terminal ระบบจะสั่งรันในเครื่องให้อัตโนมัติทันทีเหมือน IDE">
+              <input type="checkbox" id="autoPilotCheckbox" class="accent-amber-500 w-3.5 h-3.5 cursor-pointer">
+              <span>🤖 Auto-Pilot (สั่งแล้วรันทันที)</span>
+            </label>
+            <select id="promptTemplateSelect" onchange="onTemplateChange()" class="bg-stone-950 border border-stone-700 rounded-lg px-2.5 py-1 text-xs text-stone-200 focus:border-amber-500 focus:outline-none max-w-[190px] truncate">
               <option value="custom">✏️ กำหนดคำสั่งเอง</option>
+              <option value="run">🚀 วิเคราะห์และรันโปรเจกต์นี้</option>
               <option value="bug">🐛 ตรวจหาและแก้บั๊ก</option>
               <option value="feature">✨ เขียนโค้ดฟีเจอร์ใหม่</option>
               <option value="explain">🔍 อธิบายการทำงานของโค้ด</option>
@@ -555,14 +560,37 @@
           fileDiv.setAttribute('data-path', node.path.toLowerCase());
           fileDiv.style.paddingLeft = `${depth * 16 + 6}px`;
           
-          const icon = getFileIcon(node.name);
-          const sizeKb = Math.round((node.sizeBytes || 0) / 1024);
+          const isRunnableScript = /\.(bat|cmd|sh|ps1)$/i.test(node.name);
+          const isDockerCompose = /^docker-compose\.ya?ml$/i.test(node.name);
+
+          let runBtnHtml = '';
+          if (isRunnableScript) {
+            runBtnHtml = `
+              <div class="flex items-center gap-1 ml-auto shrink-0" onclick="event.stopPropagation()">
+                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', false)" class="px-2 py-0.5 bg-sky-600 hover:bg-sky-500 text-stone-950 font-bold rounded text-[11px] transition shadow cursor-pointer flex items-center gap-1" title="สั่งรันไฟล์นี้ใน Terminal">
+                  <span>▶️ รัน</span>
+                </button>
+                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', true)" class="px-1.5 py-0.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[11px] transition cursor-pointer" title="เปิดรันในหน้าต่าง Command Prompt แยกของ Windows">
+                  🪟
+                </button>
+              </div>
+            `;
+          } else if (isDockerCompose) {
+            runBtnHtml = `
+              <div class="flex items-center gap-1 ml-auto shrink-0" onclick="event.stopPropagation()">
+                <button type="button" onclick="runTerminalCommand('docker compose up -d')" class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-stone-950 font-bold rounded text-[11px] transition shadow cursor-pointer flex items-center gap-1" title="สั่งรัน docker compose up -d ทันที">
+                  <span>▶️ Up</span>
+                </button>
+              </div>
+            `;
+          }
 
           fileDiv.innerHTML = `
             <input type="checkbox" data-path="${node.path}" onchange="toggleFile('${node.path}', this.checked)" class="accent-amber-500 rounded cursor-pointer w-4 h-4 shrink-0">
             <span class="text-sm text-stone-400">${icon}</span>
-            <span class="truncate text-stone-200 text-sm">${node.name}</span>
-            <span class="text-xs text-stone-500 ml-auto font-mono shrink-0">${sizeKb > 0 ? sizeKb + 'KB' : '<1KB'}</span>
+            <span class="truncate text-stone-200 text-sm font-medium">${node.name}</span>
+            <span class="text-xs text-stone-500 font-mono shrink-0 mr-1 ${runBtnHtml ? 'hidden sm:inline' : 'ml-auto'}">${sizeKb > 0 ? sizeKb + 'KB' : '<1KB'}</span>
+            ${runBtnHtml}
           `;
           parentEl.appendChild(fileDiv);
         }
@@ -660,7 +688,9 @@
     function onTemplateChange() {
       const val = document.getElementById('promptTemplateSelect').value;
       const customEl = document.getElementById('customInstructions');
-      if (val === 'bug') {
+      if (val === 'run') {
+        customEl.value = 'ช่วยตรวจสอบโครงสร้างไฟล์และวิธีรันของโปรเจกต์ในโฟลเดอร์นี้ให้หน่อย และสั่งรันโปรเจกต์ด้วยคำสั่งที่ถูกต้อง (เช่น docker compose up -d หรือคำสั่งรันสคริปต์ .bat)';
+      } else if (val === 'bug') {
         customEl.value = 'ช่วยตรวจสอบโค้ดในไฟล์ที่เลือก หาจุดที่อาจเกิดบั๊ก ปัญหาความปลอดภัย หรือข้อผิดพลาด และแนะนำแนวทางแก้ไขอย่างละเอียด';
       } else if (val === 'feature') {
         customEl.value = 'ช่วยออกแบบและเขียนโค้ดสำหรับฟีเจอร์ใหม่ โดยต่อยอดจากโครงสร้างไฟล์ที่มีอยู่นี้ให้มีความเข้ากันได้และสมบูรณ์';
@@ -675,6 +705,11 @@
       } else {
         customEl.value = '';
       }
+    }
+
+    function runScriptFile(encodedPath, openExternal = false) {
+      const filePath = decodeURIComponent(encodedPath);
+      runTerminalCommand(filePath, openExternal);
     }
 
     async function getFormattedContext() {
@@ -1022,6 +1057,7 @@
     }
 
     let detectedCommands = [];
+    let lastAutoPilotRunSig = '';
 
     function parseCommandsFromAiText(text) {
       const commands = [];
@@ -1092,9 +1128,12 @@
         pill.innerHTML = `
           <span class="text-sky-400 font-bold">$</span>
           <span class="font-bold text-sky-300 truncate max-w-sm">${cmd}</span>
-          <div class="flex items-center gap-1 ml-auto">
-            <button onclick="runTerminalCommand('${encodeURIComponent(cmd)}')" class="px-2.5 py-1 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-stone-950 font-bold rounded-md text-[11px] transition shadow cursor-pointer flex items-center gap-1">
+          <div class="flex items-center gap-1.5 ml-auto">
+            <button onclick="runTerminalCommand('${encodeURIComponent(cmd)}', false)" class="px-2.5 py-1 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-stone-950 font-bold rounded-md text-[11px] transition shadow cursor-pointer flex items-center gap-1" title="รันในเว็บ Terminal">
               <span>▶️ สั่งรัน</span>
+            </button>
+            <button onclick="runTerminalCommand('${encodeURIComponent(cmd)}', true)" class="px-2 py-1 bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold rounded-md text-[11px] transition cursor-pointer flex items-center gap-1" title="เปิดหน้าต่าง Command Prompt แยกของ Windows">
+              <span>🪟 CMD</span>
             </button>
             <button onclick="navigator.clipboard.writeText('${cmd.replace(/'/g, "\\'")}'); alert('คัดลอกคำสั่งแล้ว: ${cmd.replace(/'/g, "\\'")}')" class="px-1.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[11px] transition cursor-pointer" title="คัดลอกคำสั่ง">
               📋
@@ -1105,7 +1144,7 @@
       });
     }
 
-    async function runTerminalCommand(encodedCmd) {
+    async function runTerminalCommand(encodedCmd, openExternal = false) {
       const command = decodeURIComponent(encodedCmd);
       if (!command) return;
 
@@ -1119,13 +1158,13 @@
       cmdDisplay.innerText = `คำสั่ง: ${command}`;
       workDirDisplay.innerText = '⏳ กำลังรัน...';
       outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-amber-300 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-stone-800';
-      outputEl.innerText = `> ${command}\n\n⏳ กำลังรันคำสั่งในเครื่อง (PowerShell)... กรุณารอสักครู่`;
+      outputEl.innerText = `> ${command}\n\n⏳ กำลังรันคำสั่งในเครื่อง... กรุณารอสักครู่`;
 
       try {
         const res = await fetch('/api/run-command', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command })
+          body: JSON.stringify({ command, openExternal })
         });
         const data = await res.json();
 
@@ -1320,6 +1359,19 @@
             // Parse any runnable terminal commands
             const commands = parseCommandsFromAiText(newText);
             renderDetectedCommandsList(commands);
+
+            // Auto-Pilot Execution (Run automatically like an IDE Agent)
+            const autoPilotOn = document.getElementById('autoPilotCheckbox')?.checked;
+            if (autoPilotOn && commands.length > 0) {
+              const runSig = newTime + '::' + commands[0];
+              if (runSig !== lastAutoPilotRunSig) {
+                lastAutoPilotRunSig = runSig;
+                console.log('🤖 Auto-Pilot triggered command:', commands[0]);
+                setTimeout(() => {
+                  runTerminalCommand(commands[0]);
+                }, 1000);
+              }
+            }
           }
         }
       } catch (e) {}
