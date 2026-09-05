@@ -512,7 +512,8 @@
         renderTree(currentTree, container);
         updateStats();
       } catch (e) {
-        document.getElementById('treeContainer').innerHTML = '<div class="text-red-400 p-4">ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้</div>';
+        console.error('loadTree error:', e);
+        document.getElementById('treeContainer').innerHTML = `<div class="text-red-400 p-4 text-xs font-mono">เกิดข้อผิดพลาดในการโหลดไฟล์: ${e.message}</div>`;
       }
     }
 
@@ -539,6 +540,7 @@
     }
 
     function renderTree(nodes, parentEl, depth = 0) {
+      if (!Array.isArray(nodes)) return;
       for (const node of nodes) {
         if (node.isDir) {
           const dirDiv = document.createElement('div');
@@ -555,6 +557,9 @@
           renderTree(node.children, dirDiv.querySelector('.dir-children'), depth + 1);
         } else {
           allFilesMap.set(node.path, node.sizeBytes || 0);
+          const icon = getFileIcon(node.name);
+          const sizeKb = Math.round((node.sizeBytes || 0) / 1024);
+
           const fileDiv = document.createElement('label');
           fileDiv.className = 'flex items-center gap-2.5 py-1.5 px-2 hover:bg-stone-900/90 rounded-lg cursor-pointer transition select-none tree-file';
           fileDiv.setAttribute('data-path', node.path.toLowerCase());

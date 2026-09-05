@@ -272,6 +272,7 @@ ${customInstructions || promptTemplate || 'ช่วยตรวจสอบห�
   const allTree = getProjectTree();
   const manifest = [];
   function gatherPaths(nodes) {
+    if (!Array.isArray(nodes)) return;
     for (const n of nodes) {
       if (n.isDir && n.children) gatherPaths(n.children);
       else manifest.push(n.path);
