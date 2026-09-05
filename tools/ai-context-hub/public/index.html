@@ -587,11 +587,8 @@
           if (isRunnableScript) {
             runBtnHtml = `
               <div class="flex items-center gap-1 ml-auto shrink-0" onclick="event.stopPropagation()">
-                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', true)" class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold rounded text-[11px] transition shadow cursor-pointer flex items-center gap-1" title="เปิดหน้าต่าง Command Prompt รันไฟล์นี้ทันที">
+                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', false)" class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold rounded text-[11px] transition shadow cursor-pointer flex items-center gap-1" title="สั่งรันไฟล์นี้และดูผลลัพธ์ในเว็บทันที">
                   <span>▶️ รัน</span>
-                </button>
-                <button type="button" onclick="runScriptFile('${encodeURIComponent(node.path)}', false)" class="px-1.5 py-0.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[11px] transition cursor-pointer" title="รันในเว็บ Terminal">
-                  💻
                 </button>
               </div>
             `;
@@ -727,11 +724,8 @@
       }
     }
 
-    function runScriptFile(encodedPath, forceExternal = null) {
+    function runScriptFile(encodedPath, openExternal = false) {
       const filePath = decodeURIComponent(encodedPath);
-      // For batch scripts and shell scripts, default to openExternal=true so Windows CMD pops up and long-running servers don't hang
-      const isScript = /\.(bat|cmd|sh|ps1)$/i.test(filePath);
-      const openExternal = forceExternal !== null ? forceExternal : isScript;
       runTerminalCommand(encodeURIComponent(filePath), openExternal);
     }
 
