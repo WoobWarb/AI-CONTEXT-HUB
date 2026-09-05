@@ -1,0 +1,9 @@
+{
+  "name": "ai-context-hub",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "ai": "node tools/ai-context-hub/server.js",
+    "hub": "node tools/ai-context-hub/server.js"
+  }
+}

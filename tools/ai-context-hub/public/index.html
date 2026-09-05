@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Context Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kanit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; font-size: 15px; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .font-sans { font-family: 'Inter', 'Kanit', sans-serif; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #14120f; }
+    ::-webkit-scrollbar-thumb { background: #3d3832; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #5a544c; }
+  </style>
+</head>
+<body class="bg-[#0e0c0a] text-stone-200 h-screen w-screen overflow-hidden p-2.5 sm:p-3 text-[14px]">
+  <div class="max-w-[1550px] w-full mx-auto h-full flex flex-col gap-2 overflow-hidden">
+    <!-- Header (Compact 1-row) -->
+    <header class="flex flex-wrap items-center justify-between gap-2.5 bg-[#181512] border border-stone-800 rounded-xl px-4 py-2 shadow-lg shrink-0">
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <span class="text-xl font-black text-amber-500 tracking-wide font-sans">AI CONTEXT HUB</span>
+        <span class="text-xs bg-amber-950/80 text-amber-300 border border-amber-600/60 px-2 py-0.5 rounded-md font-bold">
+          v1.2
+        </span>
+        <span id="projectNameDisplay" class="text-xs bg-stone-900 border border-stone-700 text-stone-300 px-2.5 py-1 rounded-md font-mono truncate max-w-xs" title="โฟลเดอร์ปัจจุบัน">
+          📁 โฟลเดอร์โปรเจกต์
+        </span>
+        <button onclick="openFolderModal()" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-2.5 py-1 rounded-md font-medium flex items-center gap-1 transition shadow-sm cursor-pointer">
+          <span>📁 เปลี่ยนโฟลเดอร์</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openBridgeModal()" id="bridgeStatusBtn" class="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-stone-200 text-xs font-semibold rounded-lg border border-stone-700 flex items-center gap-1.5 transition shadow-sm cursor-pointer">
+          <span id="bridgeStatusDot" class="w-2 h-2 rounded-full bg-stone-500 inline-block"></span>
+          <span id="bridgeStatusText">⚡ เชื่อมต่อ Web Chat</span>
+        </button>
+        <button onclick="runTestSuite()" class="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-stone-200 text-xs font-semibold rounded-lg border border-stone-700 flex items-center gap-1.5 transition shadow-sm">
+          <span>🧪 รัน npm test</span>
+        </button>
+        <button onclick="openTunnelModal()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-stone-950 text-xs font-bold rounded-lg shadow-lg flex items-center gap-1.5 transition">
+          <span>🌐 Tunnel</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Quick Presets Filter (Compact 1-row) -->
+    <div class="bg-[#14120f] border border-stone-800 rounded-xl px-3.5 py-1.5 shadow-md flex items-center justify-between gap-2 shrink-0 flex-wrap">
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-xs font-bold text-stone-400 mr-1">⚡ เลือกด่วน:</span>
+        <button onclick="applyPreset('code')" class="px-2.5 py-1 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-700/60 text-amber-300 text-xs rounded-md font-medium transition">
+          💻 ซอร์สโค้ด
+        </button>
+        <button onclick="applyPreset('config')" class="px-2.5 py-1 bg-purple-950/40 hover:bg-purple-900/60 border border-purple-700/60 text-purple-300 text-xs rounded-md font-medium transition">
+          ⚙️ คอนฟิก
+        </button>
+        <button onclick="applyPreset('docs')" class="px-2.5 py-1 bg-blue-950/40 hover:bg-blue-900/60 border border-blue-700/60 text-blue-300 text-xs rounded-md font-medium transition">
+          📖 เอกสาร
+        </button>
+        <button onclick="applyPreset('ui')" class="px-2.5 py-1 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-700/60 text-emerald-300 text-xs rounded-md font-medium transition">
+          🎨 หน้าเว็บ/UI
+        </button>
+        <button onclick="applyPreset('test')" class="px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-700/60 text-rose-300 text-xs rounded-md font-medium transition">
+          🧪 เทสต์
+        </button>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button onclick="selectAll(true)" class="px-2.5 py-1 bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-xs rounded-md font-medium transition">
+          ✓ ทั้งหมด
+        </button>
+        <button onclick="selectAll(false)" class="px-2.5 py-1 bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-400 text-xs rounded-md font-medium transition">
+          ✕ ล้าง
+        </button>
+      </div>
+    </div>
+
+    <!-- Main 2-Column Layout (Fills remaining height, 0 window scroll) -->
+    <div class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2.5 overflow-hidden">
+      <!-- Left: File Tree Explorer (5 Cols) -->
+      <div class="md:col-span-5 bg-[#14120f] border border-stone-800 rounded-xl p-3 shadow-lg flex flex-col h-full overflow-hidden">
+        <div class="flex items-center justify-between border-b border-stone-800 pb-2 mb-2 shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+              <span>📂</span> รายการไฟล์
+            </span>
+            <button onclick="promptCreateFile()" class="text-xs bg-emerald-950/50 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-700/60 px-2 py-0.5 rounded-md font-semibold transition cursor-pointer flex items-center gap-1" title="สร้างไฟล์ใหม่ในโฟลเดอร์นี้">
+              <span>➕ สร้างไฟล์ใหม่</span>
+            </button>
+          </div>
+          <span id="selectedCountBadge" class="text-xs font-mono text-stone-400 bg-stone-900 px-2 py-0.5 rounded-md border border-stone-800">เลือก 0 ไฟล์</span>
+        </div>
+
+        <!-- Search / Filter in tree -->
+        <div class="mb-2 shrink-0">
+          <input 
+            type="text" 
+            id="searchBox" 
+            oninput="onSearchFilter(this.value)"
+            placeholder="🔍 พิมพ์เพื่อค้นหาชื่อไฟล์..." 
+            class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-stone-200 placeholder-stone-500 focus:border-amber-500 focus:outline-none"
+          />
+        </div>
+
+        <div id="treeContainer" class="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-1 text-xs sm:text-sm font-mono">
+          <div class="text-stone-500 py-10 text-center">กำลังโหลดรายการไฟล์...</div>
+        </div>
+      </div>
+
+      <!-- Right: Prompt & Export Output (7 Cols) -->
+      <div class="md:col-span-7 bg-[#14120f] border border-stone-800 rounded-xl p-3 shadow-lg flex flex-col h-full overflow-hidden justify-between">
+        
+        <!-- Tab Bar Header (Prompt vs Live AI Response) -->
+        <div class="flex items-center justify-between border-b border-stone-800 pb-2 mb-2 shrink-0 flex-wrap gap-2">
+          <div class="flex items-center gap-1.5 bg-stone-950 p-1 rounded-lg border border-stone-800">
+            <button id="tabPromptBtn" onclick="switchRightTab('prompt')" class="px-3 py-1 rounded-md text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 transition flex items-center gap-1.5 cursor-pointer">
+              <span>🎯 ส่งคำสั่ง (Prompt)</span>
+            </button>
+            <button id="tabResponseBtn" onclick="switchRightTab('response')" class="px-3 py-1 rounded-md text-xs font-semibold text-stone-400 hover:text-stone-200 transition flex items-center gap-1.5 cursor-pointer">
+              <span id="responseTabDot" class="w-2 h-2 rounded-full bg-stone-600 inline-block"></span>
+              <span>💬 คำตอบจาก AI</span>
+              <span id="newResponseBadge" class="hidden text-[10px] bg-emerald-500 text-stone-950 font-black px-1.5 py-0.5 rounded-full animate-bounce">NEW</span>
+            </button>
+          </div>
+
+          <div id="templateSelectWrapper" class="flex items-center gap-2">
+            <select id="promptTemplateSelect" onchange="onTemplateChange()" class="bg-stone-950 border border-stone-700 rounded-lg px-2.5 py-1 text-xs text-stone-200 focus:border-amber-500 focus:outline-none max-w-[220px] truncate">
+              <option value="custom">✏️ กำหนดคำสั่งเอง</option>
+              <option value="bug">🐛 ตรวจหาและแก้บั๊ก</option>
+              <option value="feature">✨ เขียนโค้ดฟีเจอร์ใหม่</option>
+              <option value="explain">🔍 อธิบายการทำงานของโค้ด</option>
+              <option value="refactor">♻️ รีแฟกเตอร์โค้ด</option>
+              <option value="test">🧪 เขียน Unit Tests</option>
+              <option value="docs">📖 สร้างเอกสารคู่มือ</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- TAB 1: PROMPT VIEW -->
+        <div id="viewPrompt" class="flex-1 min-h-0 flex flex-col justify-between">
+          <div class="flex-1 min-h-0 flex flex-col gap-2">
+            <!-- Textarea fills available space -->
+            <div class="flex-1 min-h-0 flex flex-col">
+              <textarea 
+                id="customInstructions" 
+                onkeydown="if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); sendDirectToWebChat(); }"
+                placeholder="พิมพ์คำถามหรือคำสั่งที่นี่ เช่น 'ลง n8n ให้หน่อย' หรือ 'ช่วยสร้างไฟล์ docker-compose.yml สำหรับรันเว็บ' (ไม่จำเป็นต้องเลือกไฟล์หากเป็นคำถามทั่วไป หรือต้องการให้ AI สร้างไฟล์ใหม่)" 
+                class="w-full flex-1 min-h-[90px] bg-stone-950 border border-stone-700 rounded-xl p-3 text-sm sm:text-base text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none resize-none leading-relaxed"
+              ></textarea>
+              <div class="flex items-center justify-between text-xs text-stone-400 mt-1 px-0.5 shrink-0">
+                <span class="flex items-center gap-1 text-amber-400 font-medium">
+                  <span>💡</span> กด <b>Ctrl + Enter</b> เพื่อส่งตรงเข้าเว็บแชทได้ทันที
+                </span>
+              </div>
+            </div>
+
+            <!-- Stats Pill (Compact) -->
+            <div class="bg-stone-950 border border-stone-800 rounded-xl py-1.5 px-3 flex items-center justify-around text-center shrink-0">
+              <div>
+                <div class="text-stone-400 text-[11px]">ไฟล์ที่เลือก</div>
+                <div id="statFiles" class="text-sm sm:text-base font-bold text-amber-400 font-mono">0</div>
+              </div>
+              <div class="border-r border-stone-800 h-5"></div>
+              <div>
+                <div class="text-stone-400 text-[11px]">ขนาดรวม</div>
+                <div id="statSize" class="text-sm sm:text-base font-bold text-sky-400 font-mono">0 KB</div>
+              </div>
+              <div class="border-r border-stone-800 h-5"></div>
+              <div>
+                <div class="text-stone-400 text-[11px]">Token โดยประมาณ</div>
+                <div id="statTokens" class="text-sm sm:text-base font-bold text-emerald-400 font-mono">~0 tokens</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons & Quick Response Snippet -->
+          <div class="shrink-0 flex flex-col gap-1.5 mt-2">
+            <button id="sendBridgeBtn" onclick="sendDirectToWebChat()" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-stone-950 font-bold text-sm sm:text-base rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+              <span>🚀 ส่งตรงเข้าหน้าเว็บแชท (Ctrl + Enter)</span>
+            </button>
+
+            <div class="flex gap-2">
+              <button id="copyBtn" onclick="copyContext()" class="flex-1 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-bold text-xs sm:text-sm rounded-xl shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>📋 คัดลอก Context</span>
+              </button>
+              <button onclick="downloadContext()" class="py-2 px-3 bg-stone-900 hover:bg-stone-800 text-stone-300 font-semibold text-xs rounded-xl border border-stone-700 transition flex items-center justify-center gap-1">
+                <span>💾 .md</span>
+              </button>
+              <button onclick="previewContext()" class="py-2 px-3 bg-stone-900 hover:bg-stone-800 text-stone-300 font-semibold text-xs rounded-xl border border-stone-700 transition flex items-center justify-center gap-1">
+                <span>👁️ ตัวอย่าง</span>
+              </button>
+            </div>
+
+            <!-- Quick AI Response Notification Bar -->
+            <div id="aiResponseQuickBar" onclick="switchRightTab('response')" class="hidden p-2 rounded-xl bg-emerald-950/40 border border-emerald-600/50 hover:bg-emerald-900/40 cursor-pointer transition flex items-center justify-between">
+              <span class="flex items-center gap-2 text-xs font-semibold text-emerald-400 truncate">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>💬 ได้รับคำตอบจาก AI แล้ว: <span id="quickBarSnippet" class="text-stone-300 font-normal">...</span></span>
+              </span>
+              <span class="text-xs text-amber-400 font-bold shrink-0 ml-2">คลิกเพื่อดู ➔</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: FULL AI RESPONSE VIEW -->
+        <div id="viewResponse" class="flex-1 min-h-0 hidden flex-col justify-between">
+          <div class="flex-1 min-h-0 flex flex-col gap-2">
+            <div class="flex items-center justify-between text-xs text-stone-400 shrink-0">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+                <span class="font-bold text-emerald-400 text-sm">💬 คำตอบล่าสุดจาก AI (Web Chat)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="aiResponseFullTime" class="font-mono text-stone-500 text-xs"></span>
+                <button onclick="copyAiResponse()" class="px-2 py-0.5 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700 rounded text-xs transition cursor-pointer">
+                  📋 คัดลอก
+                </button>
+              </div>
+            </div>
+
+            <!-- Detected Files Bar -->
+            <div id="detectedFilesContainer" class="hidden shrink-0 bg-stone-950 border border-amber-500/50 rounded-xl p-2.5 space-y-1.5 shadow-md">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                  <span>⚡</span> ตรวจพบโค้ด/ไฟล์ที่ AI แนะนำสร้าง:
+                </span>
+                <span id="detectedFilesCount" class="text-[11px] text-stone-400 font-mono">0 ไฟล์</span>
+              </div>
+              <div id="detectedFilesList" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- Detected Commands Bar (Terminal Runner) -->
+            <div id="detectedCommandsContainer" class="hidden shrink-0 bg-stone-950 border border-sky-500/50 rounded-xl p-2.5 space-y-1.5 shadow-md">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                  <span>💻</span> คำสั่ง Terminal ที่ตรวจพบ (กดรันได้ทันที):
+                </span>
+                <span id="detectedCommandsCount" class="text-[11px] text-stone-400 font-mono">0 คำสั่ง</span>
+              </div>
+              <div id="detectedCommandsList" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- Scrollable Message Content -->
+            <div id="aiResponseFullContent" class="flex-1 min-h-0 bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs sm:text-sm text-stone-200 overflow-y-auto whitespace-pre-wrap leading-relaxed select-text font-sans">
+              <div class="text-stone-500 py-12 text-center">
+                <span>ยังไม่มีคำตอบจาก AI<br><br>กดพิมพ์คำสั่งในแท็บ "🎯 ส่งคำสั่ง" แล้วกด <b>Ctrl + Enter</b> เพื่อเริ่มคุยได้เลยครับ</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom bar of Tab 2 -->
+          <div class="shrink-0 flex items-center justify-between gap-2 mt-2 pt-2 border-t border-stone-800">
+            <button onclick="switchRightTab('prompt')" class="px-3 py-2 bg-stone-900 hover:bg-stone-800 text-stone-300 text-xs font-semibold rounded-xl border border-stone-700 transition cursor-pointer">
+              <span>⬅️ กลับไปหน้าพิมพ์คำสั่ง</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="autoExtractAndSave()" id="btnManualExtract" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-stone-950 text-xs font-bold rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer">
+                <span>💾 บันทึกไฟล์ทั้งหมดลงโฟลเดอร์นี้</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminal Output Drawer Modal -->
+  <div id="terminalModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#181512] border border-stone-700 rounded-2xl max-w-2xl w-full p-5 shadow-2xl relative max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+          <span class="font-bold text-sm text-stone-100 font-mono" id="terminalTitle">💻 ผลการรัน Terminal Command</span>
+        </div>
+        <button onclick="closeModal('terminalModal')" class="text-stone-400 hover:text-white text-xl">✕</button>
+      </div>
+      <div class="mb-2 text-xs text-stone-400 font-mono bg-stone-900/90 px-3 py-1.5 rounded-lg border border-stone-800 flex items-center justify-between">
+        <span class="truncate" id="terminalCmdDisplay">คำสั่ง: ...</span>
+        <span class="text-amber-400 text-[11px]" id="terminalWorkDirDisplay"></span>
+      </div>
+      <pre id="terminalOutput" class="bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-emerald-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-stone-800">กำลังรันคำสั่ง...</pre>
+      <div class="mt-3 flex justify-end gap-2">
+        <button onclick="closeModal('terminalModal')" class="px-4 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold rounded-lg transition">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="testModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#181512] border border-stone-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-3 mb-3">
+        <span class="font-bold text-base text-stone-100 font-mono">🧪 ผลการรัน Automated Tests (npm test)</span>
+        <button onclick="closeModal('testModal')" class="text-stone-400 hover:text-white text-xl">✕</button>
+      </div>
+      <pre id="testOutput" class="bg-black/90 p-4 rounded-xl font-mono text-sm text-stone-200 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed">กำลังรันการทดสอบ...</pre>
+    </div>
+  </div>
+
+  <!-- Tunnel Instructions Modal -->
+  <div id="tunnelModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#181512] border border-stone-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-3 mb-4">
+        <span class="font-bold text-lg text-stone-100">🌐 วิธีเชื่อมต่อเครื่องเข้ากับ ChatGPT Custom Actions</span>
+        <button onclick="closeModal('tunnelModal')" class="text-stone-400 hover:text-white text-xl">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-sm text-stone-300 leading-relaxed">
+        <p>คุณสามารถให้ ChatGPT สั่งอ่านและแก้ไขไฟล์ในโฟลเดอร์นี้ได้โดยตรงผ่าน Tunnel:</p>
+        
+        <div class="bg-stone-950 p-3.5 rounded-xl border border-stone-800 font-mono text-sm text-amber-300">
+          # 1. รันคำสั่งเปิด Tunnel ในเทอร์มินัล<br>
+          <span id="tunnelCommandDisplay">npx cloudflared tunnel --url http://localhost:4001</span>
+        </div>
+
+        <p>2. คุณจะได้ URL เช่น <code class="bg-stone-900 px-1.5 py-0.5 rounded text-amber-400">https://your-tunnel.trycloudflare.com</code></p>
+        <p>3. ใน ChatGPT ไปที่ <b>Explore GPTs -> Create -> Configure -> Actions</b></p>
+        <p>4. ในช่อง Schema ให้กรอก URL หรือเนื้อหาจาก:</p>
+        <div class="bg-stone-950 p-2.5 rounded-lg border border-stone-800 text-stone-300 font-mono text-sm" id="schemaUrlDisplay">
+          http://localhost:4001/openapi.json
+        </div>
+        <p>5. บันทึก Action เพียงเท่านี้ AI บนหน้าเว็บจะสามารถเข้าถึงและแก้ไขไฟล์ในเครื่องของคุณได้ตามสั่ง!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Folder Modal -->
+  <div id="folderModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#181512] border border-stone-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-3 mb-3">
+        <span class="font-bold text-lg text-stone-100 flex items-center gap-2">
+          <span>📁</span> เลือกโฟลเดอร์โปรเจกต์ (Select Working Folder)
+        </span>
+        <button onclick="closeModal('folderModal')" class="text-stone-400 hover:text-white text-xl">✕</button>
+      </div>
+
+      <div class="space-y-4 text-sm text-stone-300 flex-1 overflow-y-auto pr-1">
+        <!-- Quick Drive & Shortcut Pills -->
+        <div>
+          <div class="text-xs font-semibold text-stone-400 mb-2">💾 ไดรฟ์และตำแหน่งหลัก:</div>
+          <div id="quickDrivesList" class="flex flex-wrap gap-2">
+            <span class="text-stone-500 text-sm">กำลังโหลดไดรฟ์...</span>
+          </div>
+        </div>
+
+        <!-- In-Modal Visual Folder Explorer -->
+        <div class="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs text-amber-400 font-mono truncate" id="explorerCurrentPath">📍 กำลังโหลด...</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="navigateExplorerUp()" id="explorerUpBtn" class="px-3.5 py-2 bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 rounded-lg text-sm font-semibold flex items-center gap-1 transition cursor-pointer">
+              <span>⬆️ ขึ้นหนึ่งระดับ</span>
+            </button>
+            <button onclick="confirmExplorerFolder()" class="flex-1 py-2 px-3.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 rounded-lg text-sm font-bold transition shadow cursor-pointer text-center">
+              <span>✅ เลือกโฟลเดอร์นี้เป็นโปรเจกต์</span>
+            </button>
+          </div>
+
+          <!-- Subfolder List -->
+          <div id="explorerSubdirsList" class="max-h-52 overflow-y-auto space-y-1 bg-stone-900/50 p-2.5 rounded-lg border border-stone-800 font-mono text-sm">
+            <div class="text-stone-500 text-center py-4">กำลังโหลดรายชื่อโฟลเดอร์...</div>
+          </div>
+        </div>
+
+        <!-- Manual Type/Paste Option -->
+        <div class="pt-3 border-t border-stone-800 space-y-2">
+          <div class="text-xs font-semibold text-stone-400">หรือพิมพ์ / วางที่อยู่โฟลเดอร์โดยตรง:</div>
+          <div class="flex gap-2">
+            <input 
+              type="text" 
+              id="folderPathInput" 
+              placeholder="เช่น D:\MyProject หรือ C:\Users\..." 
+              class="flex-1 bg-stone-950 border border-stone-700 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none font-mono"
+              onkeydown="if(event.key==='Enter') submitFolderPath()"
+            />
+            <button onclick="submitFolderPath()" class="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-amber-300 border border-amber-600/40 text-sm font-semibold rounded-xl transition cursor-pointer shrink-0">
+              เปิดโฟลเดอร์
+            </button>
+          </div>
+          <div id="folderErrorMsg" class="text-red-400 text-sm hidden"></div>
+        </div>
+
+        <!-- Recent Folders -->
+        <div id="recentFoldersContainer" class="pt-3 border-t border-stone-800 hidden">
+          <div class="text-xs font-semibold text-stone-400 mb-2">โฟลเดอร์ที่เคยเปิดล่าสุด:</div>
+          <div id="recentFoldersList" class="space-y-1.5"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Web Chat Bridge Modal -->
+  <div id="bridgeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#181512] border border-stone-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-3 mb-4">
+        <span class="font-bold text-lg text-stone-100 flex items-center gap-2">
+          <span>⚡</span> เชื่อมต่อแท็บแชท (ChatGPT / Claude / Gemini / DeepSeek)
+        </span>
+        <button onclick="closeModal('bridgeModal')" class="text-stone-400 hover:text-white text-xl">✕</button>
+      </div>
+
+      <div class="space-y-4 text-sm text-stone-300">
+        <p class="leading-relaxed">
+          เชื่อมโยงหน้าแชทที่คุณเปิดค้างไว้เข้ากับโปรเจกต์ในเครื่อง <b>โดยไม่ต้องเสียเงินซื้อ API Key</b> และใช้โควต้าบัญชีเว็บของคุณได้ 100%:
+        </p>
+
+        <!-- Method 1: Chrome Extension (Best & 100% Reliable) -->
+        <div class="bg-stone-950 p-4 rounded-xl border border-amber-500/60 space-y-3">
+          <div class="font-bold text-amber-400 flex items-center gap-2 text-base">
+            <span>⭐ วิธีที่ 1: ติดตั้งเป็น Chrome Extension (แนะนำ เสถียร 100%)</span>
+          </div>
+          <p class="text-sm text-stone-300 leading-relaxed">
+            ติดตั้ง Extension เพียงครั้งเดียว AI Hub จะเชื่อมกับแท็บแชทโดยอัตโนมัติ ส่งข้อความได้ทันที และให้ AI อ่าน/สร้างไฟล์ในเครื่องได้:
+          </p>
+
+          <div class="bg-stone-900/90 p-3.5 rounded-lg border border-stone-800 space-y-2.5 text-sm text-stone-300">
+            <div class="flex items-start gap-2.5">
+              <span class="bg-amber-500 text-stone-950 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
+              <span>เปิดแท็บใหม่ใน Chrome แล้วพิมพ์: <code class="bg-black px-2 py-0.5 rounded text-amber-300 font-mono select-all">chrome://extensions</code></span>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <span class="bg-amber-500 text-stone-950 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
+              <span>เปิดสวิตช์ <b>"โหมดนักพัฒนา" (Developer mode)</b> ที่มุมขวาบนของหน้าจอ</span>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <span class="bg-amber-500 text-stone-950 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</span>
+              <span>กดปุ่ม <b>"โหลดส่วนขยายที่คลายการบีบอัดแล้ว" (Load unpacked)</b> ที่มุมซ้ายบน แล้วเลือกโฟลเดอร์ extension:</span>
+            </div>
+          </div>
+
+          <div class="flex gap-2 items-center">
+            <button onclick="openExtensionFolder()" class="flex-1 py-3 px-4 bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md transition cursor-pointer">
+              <span>📂 กดเพื่อเปิดโฟลเดอร์ Extension ในเครื่องทันที</span>
+            </button>
+          </div>
+          <p class="text-xs text-stone-400 italic">
+            * หลังจากติดตั้งเสร็จ ให้เปิดหรือรีเฟรชหน้า ChatGPT / Claude / Gemini จะมีกล่อง AI Hub โผล่ขึ้นมาที่มุมขวาล่างทันทีครับ!
+          </p>
+        </div>
+
+        <!-- Method 2: Console Snippet -->
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 space-y-2.5">
+          <div class="font-bold text-stone-200 text-sm">
+            💻 วิธีที่ 2: วางคำสั่งใน Console (F12) โดยตรง
+          </div>
+          <p class="text-sm text-stone-400">
+            ในแท็บ ChatGPT กดปุ่ม <b>F12</b> -> ไปที่แท็บ <b>Console</b> -> วางโค้ดด้านล่างนี้แล้วกด Enter:
+          </p>
+          <div class="flex items-center gap-2">
+            <input 
+              type="text" 
+              readonly 
+              id="consoleBridgeSnippet"
+              value='fetch("http://localhost:4001/bridge-client.js?t="+Date.now()).then(r=>r.text()).then(eval);' 
+              class="w-full bg-black/60 border border-stone-800 rounded-lg px-3 py-2 font-mono text-xs text-amber-300 select-all"
+            />
+            <button onclick="copyConsoleSnippet()" class="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 text-sm font-semibold rounded-lg shrink-0 transition cursor-pointer">
+              ก๊อปปี้
+            </button>
+          </div>
+        </div>
+
+        <!-- Connection Status in Modal -->
+        <div id="modalBridgeLiveStatus" class="p-3.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-300 text-sm flex items-center justify-between">
+          <span>สถานะการเชื่อมต่อขณะนี้:</span>
+          <span id="modalBridgeStatusText" class="font-bold text-stone-400">⚪ รอการเชื่อมต่อ...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allFilesMap = new Map(); // path -> sizeBytes
+    let selectedFiles = new Set();
+    let currentTree = [];
+
+    // Initialize port & schema URLs
+    const currentOrigin = window.location.origin;
+    document.getElementById('tunnelCommandDisplay').innerText = `npx cloudflared tunnel --url ${currentOrigin}`;
+    document.getElementById('schemaUrlDisplay').innerText = `${currentOrigin}/openapi.json`;
+
+    async function loadTree() {
+      try {
+        const res = await fetch('/api/tree');
+        const data = await res.json();
+        currentTree = data.tree || [];
+
+        if (data.projectName) {
+          const nameEl = document.getElementById('projectNameDisplay');
+          nameEl.innerText = `📁 ${data.projectName}`;
+          nameEl.title = data.root || data.projectName;
+        }
+
+        const container = document.getElementById('treeContainer');
+        container.innerHTML = '';
+        allFilesMap.clear();
+        selectedFiles.clear();
+
+        renderTree(currentTree, container);
+        updateStats();
+      } catch (e) {
+        document.getElementById('treeContainer').innerHTML = '<div class="text-red-400 p-4">ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้</div>';
+      }
+    }
+
+    async function promptCreateFile() {
+      const filename = prompt('กรุณาระบุชื่อไฟล์ที่ต้องการสร้าง (เช่น docker-compose.yml หรือ app.js):');
+      if (!filename || !filename.trim()) return;
+
+      try {
+        const res = await fetch('/api/create-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: filename.trim() })
+        });
+        const data = await res.json();
+        if (data.success) {
+          await loadTree();
+          alert(`✅ สร้างไฟล์ "${filename.trim()}" สำเร็จแล้ว`);
+        } else {
+          alert(`❌ ไม่สามารถสร้างไฟล์ได้: ${data.error || 'เกิดข้อผิดพลาด'}`);
+        }
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      }
+    }
+
+    function renderTree(nodes, parentEl, depth = 0) {
+      for (const node of nodes) {
+        if (node.isDir) {
+          const dirDiv = document.createElement('div');
+          dirDiv.className = 'my-1 tree-folder';
+          dirDiv.setAttribute('data-name', node.name.toLowerCase());
+          dirDiv.innerHTML = `
+            <div class="font-semibold text-stone-300 py-1.5 cursor-pointer hover:text-white select-none flex items-center gap-2 text-sm transition" style="padding-left: ${depth * 16}px">
+              <span class="text-base">📁</span>
+              <span class="truncate">${node.name}</span>
+            </div>
+            <div class="dir-children"></div>
+          `;
+          parentEl.appendChild(dirDiv);
+          renderTree(node.children, dirDiv.querySelector('.dir-children'), depth + 1);
+        } else {
+          allFilesMap.set(node.path, node.sizeBytes || 0);
+          const fileDiv = document.createElement('label');
+          fileDiv.className = 'flex items-center gap-2.5 py-1.5 px-2 hover:bg-stone-900/90 rounded-lg cursor-pointer transition select-none tree-file';
+          fileDiv.setAttribute('data-path', node.path.toLowerCase());
+          fileDiv.style.paddingLeft = `${depth * 16 + 6}px`;
+          
+          const icon = getFileIcon(node.name);
+          const sizeKb = Math.round((node.sizeBytes || 0) / 1024);
+
+          fileDiv.innerHTML = `
+            <input type="checkbox" data-path="${node.path}" onchange="toggleFile('${node.path}', this.checked)" class="accent-amber-500 rounded cursor-pointer w-4 h-4 shrink-0">
+            <span class="text-sm text-stone-400">${icon}</span>
+            <span class="truncate text-stone-200 text-sm">${node.name}</span>
+            <span class="text-xs text-stone-500 ml-auto font-mono shrink-0">${sizeKb > 0 ? sizeKb + 'KB' : '<1KB'}</span>
+          `;
+          parentEl.appendChild(fileDiv);
+        }
+      }
+    }
+
+    function getFileIcon(fileName) {
+      const ext = fileName.split('.').pop().toLowerCase();
+      const codeExts = ['js', 'ts', 'jsx', 'tsx', 'py', 'go', 'rs', 'java', 'c', 'cpp', 'cs', 'php', 'rb'];
+      const styleExts = ['css', 'scss', 'sass', 'less'];
+      const docExts = ['md', 'txt', 'pdf', 'rst'];
+      const configExts = ['json', 'yaml', 'yml', 'toml', 'xml', 'env', 'ini'];
+
+      if (codeExts.includes(ext)) return '📄';
+      if (ext === 'html') return '🌐';
+      if (styleExts.includes(ext)) return '🎨';
+      if (docExts.includes(ext)) return '📝';
+      if (configExts.includes(ext)) return '⚙️';
+      return '📄';
+    }
+
+    function toggleFile(path, isChecked) {
+      if (isChecked) selectedFiles.add(path);
+      else selectedFiles.delete(path);
+      updateStats();
+    }
+
+    function selectAll(check) {
+      selectedFiles.clear();
+      document.querySelectorAll('input[data-path]').forEach(input => {
+        // Only toggle visible files if a search is active
+        const fileLabel = input.closest('.tree-file');
+        if (!fileLabel || fileLabel.style.display !== 'none') {
+          input.checked = check;
+          if (check) selectedFiles.add(input.getAttribute('data-path'));
+        }
+      });
+      updateStats();
+    }
+
+    function applyPreset(type) {
+      selectAll(false);
+      document.querySelectorAll('input[data-path]').forEach(input => {
+        const path = input.getAttribute('data-path').toLowerCase();
+        let hit = false;
+        if (type === 'code') {
+          hit = /\.(js|ts|jsx|tsx|py|go|rs|java|c|cpp|h|hpp|cs|php|rb|swift|kt|sh|bat)$/i.test(path);
+        } else if (type === 'config') {
+          hit = /\.(json|ya?ml|toml|ini|env|xml|config\.\w+)$/i.test(path) || path.includes('package.json') || path.includes('tsconfig');
+        } else if (type === 'docs') {
+          hit = /\.(md|markdown|txt|rst|doc)$/i.test(path);
+        } else if (type === 'ui') {
+          hit = /\.(html|htm|css|scss|sass|less|jsx|tsx|vue|svelte)$/i.test(path);
+        } else if (type === 'test') {
+          hit = /(test|spec|\btests\b|\bspecs\b)/i.test(path);
+        }
+
+        if (hit) {
+          input.checked = true;
+          selectedFiles.add(input.getAttribute('data-path'));
+        }
+      });
+      updateStats();
+    }
+
+    function onSearchFilter(query) {
+      const q = query.trim().toLowerCase();
+      document.querySelectorAll('.tree-file').forEach(el => {
+        const path = el.getAttribute('data-path');
+        if (!q || path.includes(q)) {
+          el.style.display = '';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+    }
+
+    function updateStats() {
+      const count = selectedFiles.size;
+      document.getElementById('selectedCountBadge').innerText = `เลือก ${count} ไฟล์`;
+      document.getElementById('statFiles').innerText = count;
+
+      let totalBytes = 0;
+      for (const f of selectedFiles) {
+        totalBytes += (allFilesMap.get(f) || 0);
+      }
+      const kb = Math.round(totalBytes / 1024);
+      document.getElementById('statSize').innerText = `${kb.toLocaleString()} KB`;
+
+      // Token estimation: approx 3.8 chars per token
+      const tokenEst = Math.round((totalBytes / 3.8));
+      document.getElementById('statTokens').innerText = `~${tokenEst.toLocaleString()} tokens`;
+    }
+
+    function onTemplateChange() {
+      const val = document.getElementById('promptTemplateSelect').value;
+      const customEl = document.getElementById('customInstructions');
+      if (val === 'bug') {
+        customEl.value = 'ช่วยตรวจสอบโค้ดในไฟล์ที่เลือก หาจุดที่อาจเกิดบั๊ก ปัญหาความปลอดภัย หรือข้อผิดพลาด และแนะนำแนวทางแก้ไขอย่างละเอียด';
+      } else if (val === 'feature') {
+        customEl.value = 'ช่วยออกแบบและเขียนโค้ดสำหรับฟีเจอร์ใหม่ โดยต่อยอดจากโครงสร้างไฟล์ที่มีอยู่นี้ให้มีความเข้ากันได้และสมบูรณ์';
+      } else if (val === 'explain') {
+        customEl.value = 'ช่วยอธิบายภาพรวม โครงสร้างไฟล์ และขั้นตอนการทำงานของระบบนี้ทีละสเต็ปให้เข้าใจง่าย';
+      } else if (val === 'refactor') {
+        customEl.value = 'ช่วยรีแฟกเตอร์โค้ดให้อ่านง่าย มีระเบียบ เป็นไปตาม Clean Code / Best Practices และมีประสิทธิภาพดียิ่งขึ้น';
+      } else if (val === 'test') {
+        customEl.value = 'ช่วยเขียนกรณีทดสอบ (Unit Tests / Integration Tests) ครอบคลุมการทำงานทั่วไปและ Edge Cases ทั้งหมด';
+      } else if (val === 'docs') {
+        customEl.value = 'ช่วยสรุปฟังก์ชันการทำงาน และจัดทำเอกสารคู่มือ (Documentation / API Reference) จากโค้ดเหล่านี้';
+      } else {
+        customEl.value = '';
+      }
+    }
+
+    async function getFormattedContext() {
+      const files = Array.from(selectedFiles);
+      const instructions = document.getElementById('customInstructions').value.trim();
+
+      if (files.length === 0 && !instructions) {
+        alert('กรุณาพิมพ์คำถาม/คำสั่ง หรือเลือกไฟล์อย่างน้อย 1 ไฟล์ครับ');
+        return null;
+      }
+
+      const res = await fetch('/api/export-context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files, customInstructions: instructions })
+      });
+      return await res.json();
+    }
+
+    async function copyContext() {
+      const data = await getFormattedContext();
+      if (!data) return;
+
+      await navigator.clipboard.writeText(data.markdown);
+      const btn = document.getElementById('copyBtn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span>✅ คัดลอกเรียบร้อยแล้ว! (พร้อมนำไปวางในแชท AI)</span>';
+      btn.classList.add('from-emerald-600', 'to-emerald-500');
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('from-emerald-600', 'to-emerald-500');
+      }, 2500);
+    }
+
+    async function downloadContext() {
+      const data = await getFormattedContext();
+      if (!data) return;
+
+      const blob = new Blob([data.markdown], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `project_context_${Date.now()}.md`;
+      a.click();
+    }
+
+    async function previewContext() {
+      const data = await getFormattedContext();
+      if (!data) return;
+      alert(`ความยาวทั้งหมด: ${data.markdown.length.toLocaleString()} ตัวอักษร\nประมาณการ Token: ~${data.estimatedTokens.toLocaleString()} tokens\nไฟล์ที่รวม: ${data.filesCount} ไฟล์\n\nพร้อมสำหรับการคัดลอกลงแชท AI ได้เลยครับ!`);
+    }
+
+    async function runTestSuite() {
+      document.getElementById('testModal').classList.remove('hidden');
+      document.getElementById('testModal').classList.add('flex');
+      document.getElementById('testOutput').innerText = '⏳ กำลังรันการทดสอบ (npm test)...';
+
+      try {
+        const res = await fetch('/api/run-tests', { method: 'POST' });
+        const data = await res.json();
+        document.getElementById('testOutput').innerText = data.output || 'ไม่พบผลลัพธ์ หรือคำสั่งเสร็จสิ้นโดยไม่มีข้อความ';
+      } catch (e) {
+        document.getElementById('testOutput').innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+      }
+    }
+
+    function openTunnelModal() {
+      document.getElementById('tunnelModal').classList.remove('hidden');
+      document.getElementById('tunnelModal').classList.add('flex');
+    }
+
+    function openFolderModal() {
+      document.getElementById('folderModal').classList.remove('hidden');
+      document.getElementById('folderModal').classList.add('flex');
+      document.getElementById('folderErrorMsg').classList.add('hidden');
+      renderRecentFolders();
+      loadExplorer();
+    }
+
+    function saveRecentFolder(folder) {
+      try {
+        let recents = JSON.parse(localStorage.getItem('ai_hub_recent_folders') || '[]');
+        recents = [folder, ...recents.filter(f => f.toLowerCase() !== folder.toLowerCase())].slice(0, 6);
+        localStorage.setItem('ai_hub_recent_folders', JSON.stringify(recents));
+      } catch (e) {}
+    }
+
+    function renderRecentFolders() {
+      try {
+        const recents = JSON.parse(localStorage.getItem('ai_hub_recent_folders') || '[]');
+        const container = document.getElementById('recentFoldersContainer');
+        const list = document.getElementById('recentFoldersList');
+        if (recents.length === 0) {
+          container.classList.add('hidden');
+          return;
+        }
+        container.classList.remove('hidden');
+        list.innerHTML = '';
+        recents.forEach(p => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg bg-stone-950 hover:bg-stone-900 border border-stone-800 font-mono text-[11px] text-stone-300 hover:text-amber-400 truncate transition flex items-center gap-2 cursor-pointer';
+          btn.innerHTML = `<span>📁</span> <span class="truncate">${p}</span>`;
+          btn.onclick = () => changeToFolder(p);
+          list.appendChild(btn);
+        });
+      } catch (e) {}
+    }
+
+    async function submitFolderPath() {
+      const input = document.getElementById('folderPathInput');
+      const p = input.value.trim();
+      if (!p) return;
+      await changeToFolder(p);
+    }
+
+    async function changeToFolder(folderPath) {
+      const errEl = document.getElementById('folderErrorMsg');
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/change-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderPath })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          errEl.innerText = `❌ ${data.error || 'ไม่สามารถเปิดโฟลเดอร์นี้ได้'}`;
+          errEl.classList.remove('hidden');
+          return;
+        }
+
+        saveRecentFolder(data.root);
+        closeModal('folderModal');
+        await loadTree();
+      } catch (e) {
+        errEl.innerText = '❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    let currentExplorerPath = '';
+    let currentExplorerParent = null;
+
+    async function loadExplorer(targetPath = '') {
+      const container = document.getElementById('explorerSubdirsList');
+      container.innerHTML = '<div class="text-stone-500 text-center py-4">กำลังโหลดรายชื่อโฟลเดอร์...</div>';
+
+      try {
+        const url = targetPath ? `/api/explore-dirs?path=${encodeURIComponent(targetPath)}` : '/api/explore-dirs';
+        const res = await fetch(url);
+        const data = await res.json();
+
+        currentExplorerPath = data.currentPath;
+        currentExplorerParent = data.parentPath;
+
+        document.getElementById('explorerCurrentPath').innerText = `📍 ${data.currentPath}`;
+        document.getElementById('folderPathInput').value = data.currentPath;
+
+        const upBtn = document.getElementById('explorerUpBtn');
+        if (data.parentPath) {
+          upBtn.disabled = false;
+          upBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+        } else {
+          upBtn.disabled = true;
+          upBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        }
+
+        // Render Quick Drives & Shortcuts
+        const drivesEl = document.getElementById('quickDrivesList');
+        drivesEl.innerHTML = '';
+        
+        // Shortcuts
+        (data.shortcuts || []).forEach(sc => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'px-2 py-1 rounded-md bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-300 hover:text-amber-400 text-[11px] transition cursor-pointer';
+          btn.innerText = sc.name;
+          btn.onclick = () => loadExplorer(sc.path);
+          drivesEl.appendChild(btn);
+        });
+
+        // Drives
+        (data.drives || []).forEach(d => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'px-2.5 py-1 rounded-md bg-stone-900 hover:bg-amber-950 border border-stone-700 hover:border-amber-600 text-stone-200 hover:text-amber-300 font-mono text-xs font-bold transition cursor-pointer';
+          btn.innerText = d;
+          btn.onclick = () => loadExplorer(d);
+          drivesEl.appendChild(btn);
+        });
+
+        // Subdirectories
+        container.innerHTML = '';
+        if (!data.subdirs || data.subdirs.length === 0) {
+          container.innerHTML = '<div class="text-stone-600 text-center py-3">ไม่มีโฟลเดอร์ย่อยในตำแหน่งนี้</div>';
+        } else {
+          data.subdirs.forEach(sub => {
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2 p-1.5 hover:bg-stone-800/80 rounded-md cursor-pointer transition select-none text-stone-300 hover:text-amber-400';
+            row.innerHTML = `<span>📁</span> <span class="truncate">${sub}</span>`;
+            row.onclick = () => {
+              const sep = currentExplorerPath.endsWith('\\') || currentExplorerPath.endsWith('/') ? '' : '\\';
+              loadExplorer(currentExplorerPath + sep + sub);
+            };
+            container.appendChild(row);
+          });
+        }
+      } catch (e) {
+        container.innerHTML = '<div class="text-red-400 text-center py-3">เกิดข้อผิดพลาดในการโหลดโฟลเดอร์</div>';
+      }
+    }
+
+    function navigateExplorerUp() {
+      if (currentExplorerParent) {
+        loadExplorer(currentExplorerParent);
+      }
+    }
+
+    async function confirmExplorerFolder() {
+      if (currentExplorerPath) {
+        await changeToFolder(currentExplorerPath);
+      }
+    }
+
+    let bridgeConnected = false;
+
+    function openBridgeModal() {
+      document.getElementById('bridgeModal').classList.remove('hidden');
+      document.getElementById('bridgeModal').classList.add('flex');
+      checkBridgeStatus();
+    }
+
+    function copyConsoleSnippet() {
+      const input = document.getElementById('consoleBridgeSnippet');
+      navigator.clipboard.writeText(input.value);
+      alert('ก๊อปปี้โค้ดเรียบร้อย! นำไปวางใน Console (F12) ของหน้า ChatGPT/Claude ได้เลยครับ');
+    }
+
+    async function openExtensionFolder() {
+      try {
+        await fetch('/api/open-extension-folder', { method: 'POST' });
+      } catch (e) {
+        alert('โฟลเดอร์ extension อยู่ที่: G:\\DeathWolf\\extension');
+      }
+    }
+
+    let currentAiResponseText = '';
+    let lastKnownResponseTime = 0;
+    let lastTreeRefreshTime = 0;
+    let detectedFiles = [];
+
+    function switchRightTab(tab) {
+      const viewPrompt = document.getElementById('viewPrompt');
+      const viewResponse = document.getElementById('viewResponse');
+      const btnPrompt = document.getElementById('tabPromptBtn');
+      const btnResponse = document.getElementById('tabResponseBtn');
+      const tmplWrapper = document.getElementById('templateSelectWrapper');
+
+      if (tab === 'prompt') {
+        viewPrompt.classList.remove('hidden');
+        viewPrompt.classList.add('flex');
+        viewResponse.classList.add('hidden');
+        viewResponse.classList.remove('flex');
+
+        btnPrompt.className = 'px-3 py-1 rounded-md text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 transition flex items-center gap-1.5 cursor-pointer';
+        btnResponse.className = 'px-3 py-1 rounded-md text-xs font-semibold text-stone-400 hover:text-stone-200 transition flex items-center gap-1.5 cursor-pointer';
+        if (tmplWrapper) tmplWrapper.classList.remove('hidden');
+      } else {
+        viewPrompt.classList.add('hidden');
+        viewPrompt.classList.remove('flex');
+        viewResponse.classList.remove('hidden');
+        viewResponse.classList.add('flex');
+
+        btnResponse.className = 'px-3 py-1 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1.5 cursor-pointer';
+        btnPrompt.className = 'px-3 py-1 rounded-md text-xs font-semibold text-stone-400 hover:text-stone-200 transition flex items-center gap-1.5 cursor-pointer';
+        if (tmplWrapper) tmplWrapper.classList.add('hidden');
+
+        document.getElementById('newResponseBadge').classList.add('hidden');
+      }
+    }
+
+    function parseFilesFromAiText(text) {
+      const files = [];
+
+      // Pattern 1: [WRITE_FILE: filename]
+      const writeRegex = /\[WRITE_FILE:\s*([^\]\r\n]+)\][\s\r\n]*(?:```[^\r\n]*[\r\n])?([\s\S]*?)(?:```|(?=\[WRITE_FILE:|$))/gi;
+      let m;
+      while ((m = writeRegex.exec(text)) !== null) {
+        const filePath = m[1].trim().replace(/^['"`]|['"`]$/g, '');
+        const content = m[2].trim();
+        if (filePath && content) files.push({ filePath, content });
+      }
+
+      // Pattern 2: Bash cat script
+      const bashCatRegex = /cat\s+<<\s*['"]?([a-zA-Z0-9_]+)['"]?\s*>\s*([^\s\r\n'"]+)[\r\n]+([\s\S]*?)[\r\n]+\1/gi;
+      while ((m = bashCatRegex.exec(text)) !== null) {
+        let filePath = m[2].trim().replace(/^['"`.]\/?|['"`]$/g, '').replace(/^\.\//, '');
+        const content = m[3].trim();
+        if (filePath && !files.some(f => f.filePath === filePath)) {
+          files.push({ filePath, content });
+        }
+      }
+
+      // Pattern 3: Explicit text like "สร้างไฟล์ filename"
+      const descRegex = /(?:สร้างไฟล์|เขียนไฟล์|บันทึกไฟล์|Save to file|Create file|File:)\s*[`'"]?([a-zA-Z0-9_./\\-]+\.[a-zA-Z0-9]+)[`'"]?[\s\S]{0,120}?```[a-zA-Z0-9_-]*[\r\n]([\s\S]*?)```/gi;
+      while ((m = descRegex.exec(text)) !== null) {
+        let filePath = m[1].trim().replace(/^['"`.]\/?|['"`]$/g, '').replace(/^\.\//, '');
+        const content = m[2].trim();
+        if (filePath && !files.some(f => f.filePath === filePath)) {
+          files.push({ filePath, content });
+        }
+      }
+
+      return files;
+    }
+
+    function renderDetectedFilesList(files) {
+      const container = document.getElementById('detectedFilesContainer');
+      const list = document.getElementById('detectedFilesList');
+      const count = document.getElementById('detectedFilesCount');
+
+      detectedFiles = files;
+      if (files.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      count.innerText = `${files.length} ไฟล์`;
+      list.innerHTML = '';
+
+      files.forEach((f, idx) => {
+        const pill = document.createElement('div');
+        pill.className = 'flex items-center gap-1.5 bg-stone-900 border border-stone-700 px-2.5 py-1 rounded-lg text-xs font-mono text-stone-200';
+        pill.innerHTML = `
+          <span>📄</span>
+          <span class="font-bold text-amber-400">${f.filePath}</span>
+          <button id="saveFileBtn_${idx}" onclick="saveSpecificFile(${idx})" class="ml-1 px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-stone-950 font-bold rounded text-[11px] transition cursor-pointer">
+            💾 เซฟไฟล์นี้
+          </button>
+        `;
+        list.appendChild(pill);
+      });
+    }
+
+    let detectedCommands = [];
+
+    function parseCommandsFromAiText(text) {
+      const commands = [];
+
+      // 1. Explicit [RUN_COMMAND: command]
+      const runRegex = /\[RUN_COMMAND:\s*([^\]\r\n]+)\]/gi;
+      let m;
+      while ((m = runRegex.exec(text)) !== null) {
+        const cmd = m[1].trim().replace(/^['"`]|['"`]$/g, '');
+        if (cmd && !commands.includes(cmd)) commands.push(cmd);
+      }
+
+      // 2. Scan code blocks for common runnable commands (docker, npm, python, bash)
+      const codeBlockRegex = /```(?:bash|sh|shell|powershell|cmd)?[\r\n]([\s\S]*?)```/gi;
+      while ((m = codeBlockRegex.exec(text)) !== null) {
+        const lines = m[1].split('\n');
+        for (let line of lines) {
+          line = line.trim().replace(/^[$#]\s*/, ''); // strip leading '$ ' or '# '
+          if (!line || line.startsWith('#') || line.startsWith('//')) continue;
+          if (line.startsWith('cat <<') || line.startsWith('echo ') || line === 'EOF') continue;
+
+          if (
+            line.startsWith('docker compose') ||
+            line.startsWith('docker-compose') ||
+            line.startsWith('docker run') ||
+            line.startsWith('npm ') ||
+            line.startsWith('npx ') ||
+            line.startsWith('python ') ||
+            line.startsWith('pip ') ||
+            line.startsWith('bash run.sh') ||
+            line.startsWith('cd ')
+          ) {
+            if (!commands.includes(line) && line.length < 120) {
+              commands.push(line);
+            }
+          }
+        }
+      }
+
+      // 3. Match explicit lines in plain text
+      const inlineCmdRegex = /(?:cd\s+[a-zA-Z0-9_-]+\s*(?:&&|;)\s*)?(?:docker\s+compose\s+up\s+-d|docker-compose\s+up\s+-d|bash\s+run\.sh)/gi;
+      while ((m = inlineCmdRegex.exec(text)) !== null) {
+        const cmd = m[0].trim();
+        if (cmd && !commands.includes(cmd)) commands.push(cmd);
+      }
+
+      return commands;
+    }
+
+    function renderDetectedCommandsList(commands) {
+      const container = document.getElementById('detectedCommandsContainer');
+      const list = document.getElementById('detectedCommandsList');
+      const count = document.getElementById('detectedCommandsCount');
+
+      detectedCommands = commands;
+      if (commands.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      count.innerText = `${commands.length} คำสั่ง`;
+      list.innerHTML = '';
+
+      commands.forEach((cmd, idx) => {
+        const pill = document.createElement('div');
+        pill.className = 'flex items-center gap-2 bg-stone-900 border border-stone-700 px-3 py-1.5 rounded-lg text-xs font-mono text-stone-200 shadow-sm';
+        pill.innerHTML = `
+          <span class="text-sky-400 font-bold">$</span>
+          <span class="font-bold text-sky-300 truncate max-w-sm">${cmd}</span>
+          <div class="flex items-center gap-1 ml-auto">
+            <button onclick="runTerminalCommand('${encodeURIComponent(cmd)}')" class="px-2.5 py-1 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-stone-950 font-bold rounded-md text-[11px] transition shadow cursor-pointer flex items-center gap-1">
+              <span>▶️ สั่งรัน</span>
+            </button>
+            <button onclick="navigator.clipboard.writeText('${cmd.replace(/'/g, "\\'")}'); alert('คัดลอกคำสั่งแล้ว: ${cmd.replace(/'/g, "\\'")}')" class="px-1.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[11px] transition cursor-pointer" title="คัดลอกคำสั่ง">
+              📋
+            </button>
+          </div>
+        `;
+        list.appendChild(pill);
+      });
+    }
+
+    async function runTerminalCommand(encodedCmd) {
+      const command = decodeURIComponent(encodedCmd);
+      if (!command) return;
+
+      const modal = document.getElementById('terminalModal');
+      const cmdDisplay = document.getElementById('terminalCmdDisplay');
+      const workDirDisplay = document.getElementById('terminalWorkDirDisplay');
+      const outputEl = document.getElementById('terminalOutput');
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      cmdDisplay.innerText = `คำสั่ง: ${command}`;
+      workDirDisplay.innerText = '⏳ กำลังรัน...';
+      outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-amber-300 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-stone-800';
+      outputEl.innerText = `> ${command}\n\n⏳ กำลังรันคำสั่งในเครื่อง (PowerShell)... กรุณารอสักครู่`;
+
+      try {
+        const res = await fetch('/api/run-command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command })
+        });
+        const data = await res.json();
+
+        workDirDisplay.innerText = `📁 โฟลเดอร์: ${data.workDir || 'โปรเจกต์'}`;
+        if (data.success) {
+          outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-emerald-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-emerald-900/50';
+          outputEl.innerText = `> ${command}\n\n${data.output || '✅ คำสั่งเสร็จสมบูรณ์เรียบร้อย'}`;
+          loadTree();
+        } else {
+          outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-rose-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-rose-900/50';
+          outputEl.innerText = `> ${command}\n\n❌ เกิดข้อผิดพลาด:\n${data.output || data.error}`;
+        }
+      } catch (e) {
+        outputEl.className = 'bg-black/95 p-4 rounded-xl font-mono text-xs sm:text-sm text-rose-400 flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-rose-900/50';
+        outputEl.innerText = `> ${command}\n\n❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์: ${e.message}`;
+      }
+    }
+
+    async function saveSpecificFile(index) {
+      const file = detectedFiles[index];
+      if (!file) return;
+
+      const btn = document.getElementById(`saveFileBtn_${index}`);
+      if (btn) btn.innerText = '⏳ กำลังบันทึก...';
+
+      try {
+        const res = await fetch('/api/file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: file.filePath, content: file.content })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (btn) {
+            btn.innerText = '✅ บันทึกแล้ว';
+            btn.className = 'ml-1 px-1.5 py-0.5 bg-stone-700 text-emerald-400 font-bold rounded text-[11px]';
+          }
+          loadTree();
+        } else {
+          alert('บันทึกล้มเหลว: ' + data.error);
+          if (btn) btn.innerText = '❌ ลองใหม่';
+        }
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการบันทึก: ' + e.message);
+      }
+    }
+
+    async function autoExtractAndSave() {
+      if (!currentAiResponseText) {
+        alert('ยังไม่มีข้อความคำตอบจาก AI');
+        return;
+      }
+
+      const files = parseFilesFromAiText(currentAiResponseText);
+      if (files.length === 0) {
+        alert('ไม่พบรูปแบบไฟล์หรือโค้ดที่สามารถดึงออกมาได้ในคำตอบนี้');
+        return;
+      }
+
+      const btn = document.getElementById('btnManualExtract');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = `<span>⏳ กำลังบันทึก ${files.length} ไฟล์...</span>`;
+
+      let saved = 0;
+      for (const f of files) {
+        try {
+          const res = await fetch('/api/file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: f.filePath, content: f.content })
+          });
+          const d = await res.json();
+          if (d.success) saved++;
+        } catch (e) {}
+      }
+
+      btn.innerHTML = `<span>✅ บันทึกแล้ว ${saved}/${files.length} ไฟล์!</span>`;
+      setTimeout(() => { btn.innerHTML = originalText; }, 3000);
+      loadTree();
+    }
+
+    async function copyAiResponse() {
+      if (!currentAiResponseText) return;
+      await navigator.clipboard.writeText(currentAiResponseText);
+      alert('คัดลอกคำตอบของ AI เรียบร้อยแล้ว!');
+    }
+
+    async function checkBridgeStatus() {
+      try {
+        const res = await fetch('/api/bridge/status');
+        const data = await res.json();
+        bridgeConnected = data.connected;
+
+        const dot = document.getElementById('bridgeStatusDot');
+        const text = document.getElementById('bridgeStatusText');
+        const modalText = document.getElementById('modalBridgeStatusText');
+        const respDot = document.getElementById('responseTabDot');
+
+        if (data.connected) {
+          dot.className = 'w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-[0_0_8px_#10b981]';
+          if (respDot) respDot.className = 'w-2 h-2 rounded-full bg-emerald-500 inline-block';
+          const name = data.tabTitle ? data.tabTitle.slice(0, 16) + '...' : 'Web Chat';
+          text.innerText = `🟢 เชื่อมต่อ: ${name}`;
+          if (modalText) {
+            modalText.innerHTML = `<span class="text-emerald-400">🟢 เชื่อมต่ออยู่กับ: ${data.tabTitle || 'Web Chat'}</span>`;
+          }
+        } else {
+          dot.className = 'w-2 h-2 rounded-full bg-stone-500 inline-block';
+          if (respDot) respDot.className = 'w-2 h-2 rounded-full bg-stone-600 inline-block';
+          text.innerText = '⚡ เชื่อมต่อ Web Chat';
+          if (modalText) {
+            modalText.innerHTML = `<span class="text-stone-500">⚪ รอการเชื่อมต่อ (เปิดแท็บ ChatGPT/Claude/Gemini ไว้)</span>`;
+          }
+        }
+
+        // Auto-refresh file tree if server reports modified files
+        if (data.lastModifiedFile && data.lastModifiedFile.time > lastTreeRefreshTime) {
+          lastTreeRefreshTime = data.lastModifiedFile.time;
+          loadTree();
+        }
+
+        // Display latest AI response
+        if (data.latestAiResponse && data.latestAiResponse.text) {
+          const newText = data.latestAiResponse.text;
+          const newTime = data.latestAiResponse.time || Date.now();
+
+          if (newText !== currentAiResponseText) {
+            currentAiResponseText = newText;
+            const fullContent = document.getElementById('aiResponseFullContent');
+            const fullTime = document.getElementById('aiResponseFullTime');
+            const quickBar = document.getElementById('aiResponseQuickBar');
+            const quickSnippet = document.getElementById('quickBarSnippet');
+            const badge = document.getElementById('newResponseBadge');
+
+            if (fullContent) fullContent.innerText = newText;
+            const d = new Date(newTime);
+            const timeStr = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            if (fullTime) fullTime.innerText = timeStr;
+
+            if (quickBar) quickBar.classList.remove('hidden');
+            if (quickSnippet) quickSnippet.innerText = newText.slice(0, 45) + (newText.length > 45 ? '...' : '');
+            if (badge) badge.classList.remove('hidden');
+
+            // Parse any files in the response
+            const files = parseFilesFromAiText(newText);
+            renderDetectedFilesList(files);
+
+            // Parse any runnable terminal commands
+            const commands = parseCommandsFromAiText(newText);
+            renderDetectedCommandsList(commands);
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function sendDirectToWebChat() {
+      if (!bridgeConnected) {
+        openBridgeModal();
+        return;
+      }
+
+      const contextData = await getFormattedContext();
+      if (!contextData) return;
+
+      const btn = document.getElementById('sendBridgeBtn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span>⏳ กำลังส่งข้อมูลไปยังหน้าแชท...</span>';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/bridge/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: contextData.markdown,
+            autoSubmit: true
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          btn.innerHTML = '<span>✅ ส่งเข้าหน้าแชทเรียบร้อย! สลับไปดูคำตอบได้เลย</span>';
+          btn.classList.add('from-emerald-700', 'to-teal-600');
+          
+          // Switch to response tab after sending
+          setTimeout(() => {
+            switchRightTab('response');
+            btn.innerHTML = originalText;
+            btn.classList.remove('from-emerald-700', 'to-teal-600');
+            btn.disabled = false;
+          }, 1200);
+        } else {
+          alert('ไม่สามารถส่งคำสั่งได้: ' + (data.error || 'เกิดข้อผิดพลาด'));
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการส่งข้อมูลไปยังแท็บแชท');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    setInterval(checkBridgeStatus, 2000);
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+      document.getElementById(id).classList.remove('flex');
+    }
+
+    loadTree();
+  </script>
+</body>
+</html>
