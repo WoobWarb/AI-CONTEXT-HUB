@@ -207,59 +207,139 @@
     return true;
   }
 
+  function isStopButton(btn) {
+    if (!btn) return false;
+    const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+    const title = (btn.getAttribute('title') || '').toLowerCase();
+    const testId = (btn.getAttribute('data-testid') || btn.getAttribute('data-test-id') || '').toLowerCase();
+    const text = (btn.innerText || '').toLowerCase();
+
+    if (label.includes('stop') || label.includes('หยุด') || label.includes('cancel') || label.includes('ยกเลิก')) return true;
+    if (title.includes('stop') || title.includes('หยุด')) return true;
+    if (testId.includes('stop')) return true;
+    if (text.includes('stop') || text.includes('หยุด')) return true;
+    if (btn.querySelector('mat-icon[fonticon="stop"], svg.icon-stop, [class*="stop"]')) return true;
+    return false;
+  }
+
+  function isAiGenerating() {
+    // 1. Check for Stop / Cancel buttons across Gemini, ChatGPT, Claude, DeepSeek
+    const stopSelectors = [
+      'button[aria-label*="Stop" i]',
+      'button[aria-label*="หยุด" i]',
+      'button[data-testid*="stop" i]',
+      'button[data-test-id*="stop" i]',
+      'button.stop-button',
+      'button[aria-label*="Cancel" i]',
+      'button[aria-label*="ยกเลิก" i]',
+      'mat-icon[fonticon="stop"]',
+      'button:has(mat-icon[fonticon="stop"])',
+      'button:has(svg.icon-stop)',
+      'button.stop-generating-button',
+      'button[aria-label*="Stop response" i]',
+      'button[aria-label*="หยุดสร้างการตอบกลับ" i]',
+      'button[aria-label*="หยุดการตอบกลับ" i]'
+    ];
+
+    for (const sel of stopSelectors) {
+      try {
+        const el = document.querySelector(sel);
+        if (el && el.offsetParent !== null) {
+          return true;
+        }
+      } catch (e) {}
+    }
+
+    // 2. Check for streaming/typing indicators
+    const streamIndicators = [
+      '.result-streaming',
+      '.streaming',
+      '.typing-indicator',
+      'model-response.generating',
+      '[data-is-streaming="true"]',
+      '.cursor-blink'
+    ];
+
+    for (const sel of streamIndicators) {
+      try {
+        const el = document.querySelector(sel);
+        if (el && el.offsetParent !== null) {
+          return true;
+        }
+      } catch (e) {}
+    }
+
+    return false;
+  }
+
+  let sendInterval = null;
   function clickSendButton() {
+    if (sendInterval) clearInterval(sendInterval);
     let attempts = 0;
-    const interval = setInterval(() => {
+    sendInterval = setInterval(() => {
       attempts++;
 
+      // If AI is actively generating/typing, wait! DO NOT click!
+      if (isAiGenerating()) {
+        if (attempts >= 40) {
+          clearInterval(sendInterval);
+          sendInterval = null;
+        }
+        return;
+      }
+
       const selectors = [
-        'button[aria-label*="Send message"]',
-        'button[aria-label*="ส่งข้อความ"]',
-        'button[aria-label*="Send prompt"]',
-        'button[aria-label*="ส่งคำสั่ง"]',
-        'button[aria-label*="Send"]',
-        'button[aria-label*="ส่ง"]',
+        'button[aria-label*="Send message" i]',
+        'button[aria-label*="ส่งข้อความ" i]',
+        'button[aria-label*="Send prompt" i]',
+        'button[aria-label*="ส่งคำสั่ง" i]',
+        'button[aria-label*="Send" i]',
+        'button[aria-label*="ส่ง" i]',
         'button.send-button',
         '.send-button-container button',
         'button[data-testid="send-button"]',
         'button[aria-label="Send Message"]',
         'fieldset button[type="submit"]',
         'form button[type="submit"]',
-        '[role="button"][aria-label*="Send"]',
-        '[role="button"][aria-label*="ส่ง"]'
+        '[role="button"][aria-label*="Send" i]',
+        '[role="button"][aria-label*="ส่ง" i]'
       ];
 
       for (const sel of selectors) {
         const btn = document.querySelector(sel);
-        if (btn) {
+        if (btn && !isStopButton(btn)) {
           const isDisabled = btn.disabled || 
                              btn.getAttribute('aria-disabled') === 'true' || 
                              btn.classList.contains('disabled');
           if (!isDisabled) {
             btn.click();
-            clearInterval(interval);
+            clearInterval(sendInterval);
+            sendInterval = null;
             console.log('🤖 AI Hub: Send button clicked successfully via', sel);
             return;
           }
         }
       }
 
-      if (attempts >= 15) {
-        clearInterval(interval);
-        // Fallback: Dispatch Enter key
-        const input = findChatInput();
-        if (input && input.el) {
-          input.el.dispatchEvent(new KeyboardEvent('keydown', {
-            bubbles: true,
-            cancelable: true,
-            key: 'Enter',
-            code: 'Enter',
-            keyCode: 13,
-            which: 13
-          }));
+      if (attempts >= 20) {
+        clearInterval(sendInterval);
+        sendInterval = null;
+        // Fallback: Dispatch Enter key only if not generating
+        if (!isAiGenerating()) {
+          const input = findChatInput();
+          if (input && input.el) {
+            input.el.dispatchEvent(new KeyboardEvent('keydown', {
+              bubbles: true,
+              cancelable: true,
+              key: 'Enter',
+              code: 'Enter',
+              keyCode: 13,
+              which: 13
+            }));
+          }
         }
       }
-    }, 150);
+    }, 200);
   }
 
   // 3. Communications with Localhost Hub
@@ -405,6 +485,9 @@
 
   // 5. Continuous AI Response Syncing & Auto-Agent
   let lastSyncedText = '';
+  let lastObservedText = '';
+  let lastTextChangeTime = 0;
+
   async function syncAndCheckAgent() {
     const latestEl = getLatestAiMessageElement();
     if (!latestEl) return;
@@ -412,7 +495,7 @@
     const text = (latestEl.innerText || '').trim();
     if (!text) return;
 
-    // 5.1 Sync latest response to AI Context Hub
+    // 5.1 Sync latest response to AI Context Hub (Continuous update)
     if (text !== lastSyncedText) {
       lastSyncedText = text;
       try {
@@ -426,34 +509,66 @@
 
     if (!autoAgentEnabled) return;
 
-    const sig = text.slice(-80) + text.length;
+    // 5.2 Check if AI is still actively typing/streaming
+    if (text !== lastObservedText) {
+      lastObservedText = text;
+      lastTextChangeTime = Date.now();
+      return; // Still generating new text! Wait!
+    }
+
+    // Must be completely stable for at least 1.8 seconds
+    if (Date.now() - lastTextChangeTime < 1800) {
+      return; // Wait for streaming to finish completely
+    }
+
+    // Check DOM for active Stop/Generating buttons
+    if (isAiGenerating()) {
+      return; // Stop button is still visible, wait!
+    }
+
+    // Message is completely finished! Compute unique signature
+    const sig = text.length + '::' + text.slice(0, 60) + '::' + text.slice(-60);
     if (processedSignatures.has(sig)) return;
 
-    // 5.2 Check for READ_FILE pattern
-    const readMatch = text.match(/\[READ_FILE:\s*([^\s\]]+)\]/i) || text.match(/READ_FILE:\s*([^\s\n]+)/i);
-    if (readMatch) {
-      const filePath = readMatch[1].trim();
+    // 5.3 Check for READ_FILE pattern (supports reading ALL requested files at once!)
+    const readMatches = [
+      ...text.matchAll(/\[READ_FILE:\s*([^\]\r\n]+)\]/gi),
+      ...text.matchAll(/READ_FILE:\s*([^\s\r\n]+)/gi)
+    ];
+
+    if (readMatches.length > 0) {
       processedSignatures.add(sig);
-      console.log(`🤖 Auto-Agent: AI requested to read file: ${filePath}`);
 
-      try {
-        const fileRes = await fetch(`${HUB_ORIGIN}/api/file?path=${encodeURIComponent(filePath)}`);
-        const fileData = await fileRes.json();
-        
-        let reply = '';
-        if (fileData.content !== undefined) {
-          reply = `[SYSTEM: นี่คือเนื้อหาของไฟล์ \`${filePath}\` จากเครื่อง]\n\`\`\`\n${fileData.content}\n\`\`\``;
-        } else {
-          reply = `[SYSTEM: ไม่พบไฟล์ \`${filePath}\` ในโปรเจกต์]`;
+      // Extract unique filenames
+      const filePaths = [...new Set(readMatches.map(m => m[1].trim().replace(/^['"`]|['"`]$/g, '')))].filter(Boolean);
+      console.log('🤖 Auto-Agent: AI requested to read files:', filePaths);
+
+      let aggregatedReplies = [];
+      for (const filePath of filePaths) {
+        try {
+          const fileRes = await fetch(`${HUB_ORIGIN}/api/file?path=${encodeURIComponent(filePath)}`);
+          const fileData = await fileRes.json();
+          if (fileData.content !== undefined) {
+            aggregatedReplies.push(`#### 📄 เนื้อหาไฟล์ \`${filePath}\` จากเครื่อง:\n\`\`\`\n${fileData.content}\n\`\`\``);
+          } else {
+            aggregatedReplies.push(`#### ⚠️ ไม่พบไฟล์ \`${filePath}\` ในโปรเจกต์`);
+          }
+        } catch (e) {
+          aggregatedReplies.push(`#### ⚠️ ไม่สามารถอ่านไฟล์ \`${filePath}\` ได้: ${e.message}`);
         }
+      }
 
-        injectTextIntoInput(reply);
-        clickSendButton();
-      } catch (e) {}
+      if (aggregatedReplies.length > 0) {
+        const fullPrompt = `[SYSTEM: ข้อมูลไฟล์ที่ร้องขอจากเครื่อง]\n\n${aggregatedReplies.join('\n\n---\n\n')}\n\nกรุณาดำเนินการวิเคราะห์หรือเขียนโค้ดต่อได้เลยครับ`;
+        injectTextIntoInput(fullPrompt);
+        setTimeout(() => {
+          clickSendButton();
+        }, 300);
+      }
       return;
     }
 
-    // 5.3 Check for files to WRITE (Supports [WRITE_FILE: ...], cat <<'EOF' > ..., and markdown blocks)
+    // 5.4 Check for files to WRITE (Supports [WRITE_FILE: ...], cat <<'EOF' > ..., and markdown blocks)
     const filesToWrite = extractFilesFromText(text);
     if (filesToWrite.length > 0) {
       processedSignatures.add(sig);
@@ -472,7 +587,6 @@
 
           if (saveData.success) {
             results.push(`✅ บันทึกไฟล์ \`${file.filePath}\` ลงเครื่องเรียบร้อยแล้ว`);
-            // Show badge on widget
             const prj = document.getElementById('ai-hub-project-name');
             if (prj) prj.innerText = `💾 บันทึก: ${file.filePath}`;
           } else {
