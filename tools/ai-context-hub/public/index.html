@@ -16,10 +16,44 @@
     ::-webkit-scrollbar-track { background: #14120f; }
     ::-webkit-scrollbar-thumb { background: #3d3832; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #5a544c; }
+
+    /* Mobile-optimized viewport and typing fixes */
+    @media (max-width: 768px) {
+      html, body {
+        height: 100% !important;
+        min-height: 100vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+      #mainContainer {
+        height: auto !important;
+        min-height: 100vh !important;
+        overflow: visible !important;
+        padding-bottom: 24px;
+      }
+      #mainGrid {
+        display: block !important;
+        flex: 1 1 auto !important;
+        overflow: visible !important;
+      }
+      #colFileTree, #colPromptResponse {
+        height: auto !important;
+        min-height: calc(100vh - 180px) !important;
+      }
+      textarea, input, select {
+        font-size: 16px !important; /* Prevents auto-zoom and focus loss on iOS/Android */
+        touch-action: manipulation;
+        -webkit-user-select: text !important;
+        user-select: text !important;
+      }
+      #customInstructions {
+        min-height: 160px !important;
+      }
+    }
   </style>
 </head>
-<body class="bg-[#0e0c0a] text-stone-200 h-screen w-screen overflow-hidden p-2.5 sm:p-3 text-[14px]">
-  <div class="max-w-[1550px] w-full mx-auto h-full flex flex-col gap-2 overflow-hidden">
+<body class="bg-[#0e0c0a] text-stone-200 h-screen w-screen overflow-hidden p-2 sm:p-3 text-[14px]">
+  <div id="mainContainer" class="max-w-[1550px] w-full mx-auto h-full flex flex-col gap-2 overflow-hidden">
     <!-- Header (Compact 1-row) -->
     <header class="flex flex-wrap items-center justify-between gap-2.5 bg-[#181512] border border-stone-800 rounded-xl px-4 py-2 shadow-lg shrink-0">
       <div class="flex items-center gap-2.5 flex-wrap">
@@ -79,10 +113,23 @@
       </div>
     </div>
 
-    <!-- Main 2-Column Layout (Fills remaining height, 0 window scroll) -->
-    <div class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2.5 overflow-hidden">
+    <!-- Mobile Tab Switcher (Visible only on mobile < 768px) -->
+    <div class="flex md:hidden items-center justify-around bg-[#181512] border border-stone-800 rounded-xl p-1 shrink-0 gap-1 shadow-md">
+      <button id="mTabPromptBtn" onclick="switchMobileView('prompt')" class="flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40">
+        <span>🎯 ส่งคำสั่ง (Prompt)</span>
+      </button>
+      <button id="mTabFilesBtn" onclick="switchMobileView('files')" class="flex-1 py-2 rounded-lg text-xs font-semibold text-stone-400 hover:text-stone-200 transition flex items-center justify-center gap-1.5 border border-transparent">
+        <span>📂 รายการไฟล์</span>
+      </button>
+      <button id="mTabResponseBtn" onclick="switchMobileView('response')" class="flex-1 py-2 rounded-lg text-xs font-semibold text-stone-400 hover:text-stone-200 transition flex items-center justify-center gap-1.5 border border-transparent">
+        <span>💬 คำตอบ AI</span>
+      </button>
+    </div>
+
+    <!-- Main 2-Column Layout (Fills remaining height, 0 window scroll on desktop) -->
+    <div id="mainGrid" class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2.5 overflow-hidden">
       <!-- Left: File Tree Explorer (5 Cols) -->
-      <div class="md:col-span-5 bg-[#14120f] border border-stone-800 rounded-xl p-3 shadow-lg flex flex-col h-full overflow-hidden">
+      <div id="colFileTree" class="hidden md:flex md:col-span-5 bg-[#14120f] border border-stone-800 rounded-xl p-3 shadow-lg flex-col h-full overflow-hidden">
         <div class="flex items-center justify-between border-b border-stone-800 pb-2 mb-2 shrink-0">
           <div class="flex items-center gap-2">
             <span class="text-sm font-bold text-amber-400 flex items-center gap-1.5">
@@ -112,7 +159,7 @@
       </div>
 
       <!-- Right: Prompt & Export Output (7 Cols) -->
-      <div class="md:col-span-7 bg-[#14120f] border border-stone-800 rounded-xl p-3 shadow-lg flex flex-col h-full overflow-hidden justify-between">
+      <div id="colPromptResponse" class="flex md:flex md:col-span-7 bg-[#14120f] border border-stone-800 rounded-xl p-3 shadow-lg flex-col h-full overflow-hidden justify-between">
         
         <!-- Tab Bar Header (Prompt vs Live AI Response) -->
         <div class="flex items-center justify-between border-b border-stone-800 pb-2 mb-2 shrink-0 flex-wrap gap-2">
@@ -979,6 +1026,47 @@
     let lastTreeRefreshTime = 0;
     let detectedFiles = [];
 
+    let currentMobileView = 'prompt';
+
+    function switchMobileView(view) {
+      currentMobileView = view;
+      const colFiles = document.getElementById('colFileTree');
+      const colPromptResp = document.getElementById('colPromptResponse');
+      const mBtnPrompt = document.getElementById('mTabPromptBtn');
+      const mBtnFiles = document.getElementById('mTabFilesBtn');
+      const mBtnResp = document.getElementById('mTabResponseBtn');
+
+      const activePromptClass = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+      const activeFilesClass = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+      const activeRespClass = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+      const inactiveClass = 'flex-1 py-2 rounded-lg text-xs font-semibold text-stone-400 hover:text-stone-200 transition flex items-center justify-center gap-1.5 border border-transparent';
+
+      if (mBtnPrompt) mBtnPrompt.className = (view === 'prompt') ? activePromptClass : inactiveClass;
+      if (mBtnFiles) mBtnFiles.className = (view === 'files') ? activeFilesClass : inactiveClass;
+      if (mBtnResp) mBtnResp.className = (view === 'response') ? activeRespClass : inactiveClass;
+
+      if (view === 'files') {
+        if (colFiles) {
+          colFiles.classList.remove('hidden');
+          colFiles.classList.add('flex');
+        }
+        if (colPromptResp) {
+          colPromptResp.classList.add('hidden');
+          colPromptResp.classList.remove('flex');
+        }
+      } else {
+        if (colFiles) {
+          colFiles.classList.add('hidden');
+          colFiles.classList.remove('flex');
+        }
+        if (colPromptResp) {
+          colPromptResp.classList.remove('hidden');
+          colPromptResp.classList.add('flex');
+        }
+        switchRightTab(view);
+      }
+    }
+
     function switchRightTab(tab) {
       const viewPrompt = document.getElementById('viewPrompt');
       const viewResponse = document.getElementById('viewResponse');
@@ -1006,6 +1094,26 @@
         if (tmplWrapper) tmplWrapper.classList.add('hidden');
 
         document.getElementById('newResponseBadge').classList.add('hidden');
+      }
+
+      // Sync mobile tabs if on mobile
+      const mBtnPrompt = document.getElementById('mTabPromptBtn');
+      const mBtnFiles = document.getElementById('mTabFilesBtn');
+      const mBtnResp = document.getElementById('mTabResponseBtn');
+      if (mBtnPrompt && mBtnFiles && mBtnResp && window.innerWidth < 768) {
+        const activePromptClass = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+        const activeRespClass = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        const inactiveClass = 'flex-1 py-2 rounded-lg text-xs font-semibold text-stone-400 hover:text-stone-200 transition flex items-center justify-center gap-1.5 border border-transparent';
+        mBtnFiles.className = inactiveClass;
+        if (tab === 'prompt') {
+          mBtnPrompt.className = activePromptClass;
+          mBtnResp.className = inactiveClass;
+          currentMobileView = 'prompt';
+        } else {
+          mBtnPrompt.className = inactiveClass;
+          mBtnResp.className = activeRespClass;
+          currentMobileView = 'response';
+        }
       }
     }
 
@@ -1610,6 +1718,25 @@ ${lastErrorOutput.slice(0, 150)}...
 
     loadTree();
     restoreCachedResponse();
+    if (window.innerWidth < 768) {
+      switchMobileView('prompt');
+    }
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768) {
+        const colFiles = document.getElementById('colFileTree');
+        const colPromptResp = document.getElementById('colPromptResponse');
+        if (colFiles) {
+          colFiles.classList.remove('hidden');
+          colFiles.classList.add('flex');
+        }
+        if (colPromptResp) {
+          colPromptResp.classList.remove('hidden');
+          colPromptResp.classList.add('flex');
+        }
+      } else {
+        switchMobileView(currentMobileView);
+      }
+    });
   </script>
 </body>
 </html>
