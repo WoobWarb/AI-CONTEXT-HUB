@@ -13,7 +13,7 @@
   let autoAgentEnabled = true;
   let processedSignatures = new Set();
 
-  console.log('🤖 [AI Context Hub Extension v1.0.5] Loaded on:', window.location.hostname);
+  console.log('🤖 [AI Context Hub Extension v1.0.6] Loaded on:', window.location.hostname);
 
   // 1. Create floating overlay widget on the web chat page
   const widget = document.createElement('div');
@@ -40,7 +40,7 @@
         <div style="display: flex; align-items: center; gap: 8px; font-weight: bold; color: #f59e0b; font-size: 15px;">
           <span id="ai-hub-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
           <span>AI Context Hub</span>
-          <span style="font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 1px 5px; border-radius: 4px;">v1.0.5</span>
+          <span style="font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 1px 5px; border-radius: 4px;">v1.0.6</span>
         </div>
         <span id="ai-hub-status-text" style="font-size: 12px; color: #a8a29e;">กำลังเชื่อมต่อ...</span>
       </div>
@@ -111,12 +111,36 @@
 
   // 2. Chat Input Detectors & Injectors
   function findChatInput() {
-    // 1. Google Gemini (rich-textarea or ql-editor or div[contenteditable="true"])
-    const gemini = document.querySelector('rich-textarea div[contenteditable="true"]') ||
-                   document.querySelector('div.ql-editor[contenteditable="true"]') ||
-                   document.querySelector('div[contenteditable="true"][aria-label*="prompt"]') ||
-                   document.querySelector('div[contenteditable="true"][aria-label*="Enter a prompt"]');
-    if (gemini) return { el: gemini, type: 'contenteditable' };
+    // 1. Google Gemini — try multiple selectors (Gemini changes DOM frequently)
+    if (window.location.hostname.includes('gemini.google.com')) {
+      const geminiSelectors = [
+        'rich-textarea div[contenteditable="true"]',
+        'div.ql-editor[contenteditable="true"]',
+        'div[contenteditable="true"][aria-label*="prompt" i]',
+        'div[contenteditable="true"][aria-label*="Enter a prompt" i]',
+        'div[contenteditable="true"][aria-label*="Message" i]',
+        'div[contenteditable="true"][aria-label*="ข้อความ" i]',
+        'div[contenteditable="true"][aria-placeholder*="prompt" i]',
+        'div[contenteditable="true"][aria-placeholder*="message" i]',
+        '.input-area div[contenteditable="true"]',
+        '.input-area-container div[contenteditable="true"]',
+        'input-container div[contenteditable="true"]',
+        'chat-input div[contenteditable="true"]',
+      ];
+      for (const sel of geminiSelectors) {
+        try {
+          const el = document.querySelector(sel);
+          if (el && el.offsetParent !== null) return { el, type: 'contenteditable' };
+        } catch (e) {}
+      }
+      // Last resort for Gemini: first visible contenteditable
+      const allCe = document.querySelectorAll('div[contenteditable="true"]');
+      for (const el of allCe) {
+        if (el.offsetParent !== null && el.getBoundingClientRect().height > 20) {
+          return { el, type: 'contenteditable' };
+        }
+      }
+    }
 
     // 2. ChatGPT
     const chatgpt = document.querySelector('#prompt-textarea') || 
@@ -421,11 +445,21 @@
   // Helper to find latest assistant message across Gemini, ChatGPT, Claude, DeepSeek
   function getLatestAiMessageElement() {
     const selectors = [
+      // Gemini 2025+ — flexible class-based selectors
+      'model-response .markdown',
+      'model-response [class*="markdown"]',
+      '[class*="model-response"] [class*="markdown"]',
+      'message-content [class*="markdown"]',
+      '[data-message-author-role="model"] [class*="markdown"]',
+      // Gemini custom elements
       'message-content',
       'model-response',
+      // ChatGPT
       '[data-message-author-role="assistant"]',
+      // Claude
       '.font-claude-message',
       '.assistant-message',
+      // Generic
       'div[class*="agent-response"]',
       'div[class*="model-response"]',
       'div.response-container-content',
