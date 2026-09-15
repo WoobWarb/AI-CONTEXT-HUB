@@ -874,11 +874,11 @@
           const selectedPath = await window.desktopAPI.selectFolder();
           if (selectedPath) {
             await changeToFolder(selectedPath);
-            return;
           }
         } catch (e) {
-          console.warn('Native folder picker fallback:', e);
+          console.warn('Native folder picker error:', e);
         }
+        return; // Desktop mode: ไม่เปิด HTML modal ไม่ว่าจะ cancel หรือ error
       }
 
       document.getElementById('folderModal').classList.remove('hidden');
