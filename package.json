@@ -1,9 +1,14 @@
 {
   "name": "ai-context-hub",
   "version": "1.0.0",
-  "private": true,
+  "main": "desktop/main.cjs",
   "scripts": {
+    "start": "electron desktop/main.cjs",
+    "desktop": "electron desktop/main.cjs",
     "ai": "node tools/ai-context-hub/server.js",
     "hub": "node tools/ai-context-hub/server.js"
+  },
+  "devDependencies": {
+    "electron": "^44.3.0"
   }
 }

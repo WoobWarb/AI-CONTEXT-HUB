@@ -61,6 +61,9 @@
         <span class="text-xs bg-amber-950/80 text-amber-300 border border-amber-600/60 px-2 py-0.5 rounded-md font-bold">
           v1.2
         </span>
+        <span id="desktopAppBadge" class="hidden text-xs bg-emerald-950/80 text-emerald-300 border border-emerald-600/60 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
+          <span>🖥️</span> DESKTOP APP
+        </span>
         <span id="projectNameDisplay" class="text-xs bg-stone-900 border border-stone-700 text-stone-300 px-2.5 py-1 rounded-md font-mono truncate max-w-xs" title="โฟลเดอร์ปัจจุบัน">
           📁 โฟลเดอร์โปรเจกต์
         </span>
@@ -865,7 +868,19 @@
       document.getElementById('tunnelModal').classList.add('flex');
     }
 
-    function openFolderModal() {
+    async function openFolderModal() {
+      if (window.desktopAPI && window.desktopAPI.isDesktop) {
+        try {
+          const selectedPath = await window.desktopAPI.selectFolder();
+          if (selectedPath) {
+            await changeToFolder(selectedPath);
+            return;
+          }
+        } catch (e) {
+          console.warn('Native folder picker fallback:', e);
+        }
+      }
+
       document.getElementById('folderModal').classList.remove('hidden');
       document.getElementById('folderModal').classList.add('flex');
       document.getElementById('folderErrorMsg').classList.add('hidden');
@@ -1738,6 +1753,10 @@ ${lastErrorOutput.slice(0, 150)}...
 
     loadTree();
     restoreCachedResponse();
+    if (window.desktopAPI && window.desktopAPI.isDesktop) {
+      const badge = document.getElementById('desktopAppBadge');
+      if (badge) badge.classList.remove('hidden');
+    }
     if (window.innerWidth < 768) {
       switchMobileView('prompt');
     }
